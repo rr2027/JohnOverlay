@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snoocify</title>
+  <!-- Add a custom font using @font-face -->
+  <style>
+    @font-face {
+      font-family: 'Consolas';
+      src: url('./Consolas.ttf') format('truetype');
+      /* You may also specify other font formats like woff and woff2 here */
+    }
+
+    body {
+      font-family: 'Consolas', sans-serif; /* Use the 'Consolas' font for the body text */
+    }
+
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+  <!-- End of custom font style -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet" />
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="./src/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@3.x/dist/vuetify.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.x/css/materialdesignicons.min.css" rel="stylesheet" />
+</body>
+</html>

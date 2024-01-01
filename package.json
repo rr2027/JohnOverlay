@@ -1,0 +1,87 @@
+{
+  "name": "john-overlay",
+  "description": "",
+  "author": "John",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "vite build && electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "productName": "John Overlay",
+    "appId": "john.overlay",
+    "artifactName": "John-Overlay-Setup-v${buildVersion}-${arch}.${ext}",
+    "directories": {
+      "output": "builds"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "John",
+        "repo": "John-overlay"
+      }
+    ],
+    "win": {
+      "icon": "src/assets/logo.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "license": "license.txt"
+    },
+    "linux": {
+      "icon": "src/assets/logo.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "mac": {
+      "icon": "src/assets/logo.png",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "@vueuse/electron": "^10.3.0",
+    "axios": "^1.4.0",
+    "axios-retry": "^3.6.0",
+    "discord-rpc": "^4.0.1",
+    "electron-log": "^4.4.8",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.1",
+    "lru-cache": "^10.1.0",
+    "moment": "^2.29.4",
+    "tail": "2.2.6",
+    "vue": "^3.2.25",
+    "vue-router": "^4.2.4",
+    "vuetify": "^3.3.14"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^2.3.4",
+    "electron": "^26.0.0",
+    "electron-builder": "^24.6.3",
+    "electron-packager": "^17.1.2",
+    "sass": "^1.66.1",
+    "vite": "^2.9.16"
+  }
+}
