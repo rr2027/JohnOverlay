@@ -45,11 +45,7 @@ const store = new Store({
       type: "number",
       default: 0.75,
     },
-    
-    developerMode: {
-      type: "boolean",
-      default: false,
-    },
+
      excludedPlayers: {
        type: "string",
        default: "",

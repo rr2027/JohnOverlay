@@ -22,13 +22,13 @@ const light = {
 };
 
 const dark = {
-  dark: true,
+  dark: false,
   colors: {
-    background: "#181a1c",
-    primary: "#5C6BC0",
-    secondary: "#B388FF",
+    background: "#F5F5F5",
+    primary: "#00ACC1",
+    secondary: "#00ACC1",
     error: "#C62828",
-    info: "#3F51B5",
+    info: "#26C6DA",
     success: "#00e676",
     warning: "#EF6C00",
   },

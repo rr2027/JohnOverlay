@@ -1,13 +1,70 @@
 import axios from "axios";
 import axiosRetry from "axios-retry";
-import { useIpcRenderer } from "@vueuse/electron";
-var cachedPlayers = {};
-const { app } = require('electron'); // Import the app module from Electron
-var johnPlayers = {}
-export let persistentPlayerEncounters = {}; // This will store the encounter counts
+const fetch = require('node-fetch');
 
-const fs = require('fs/promises'); // Import the 'fs' module for file operations
-; // This will store the encounter counts
+const { GlobalKeyboardListener } = require('node-global-key-listener');
+
+import { useIpcRenderer } from "@vueuse/electron";
+// import { ref, onMounted } from 'vue';
+
+export const excludedPlayersString = dataStore.get('excludedPlayers');
+export const excludedPlayers = excludedPlayersString.split(',').map(player => player.trim());
+const { app, globalShortcut } = require('electron');
+const fs = require('fs/promises');
+
+// const path = '/Users/diamond/Documents/GitHub/John/src/safelist.json';  // Path to your JSON file
+const toggleKey = dataStore.get("toggleKey");
+
+console.log(toggleKey)
+export let playerGuildDictionary = {}
+export let persistentPlayerEncounters = {};
+var who = [];
+
+
+var cachedPlayers = {};
+var johnPlayers = {}
+export let safelistedPlayers = [];
+// export let playerFriendsDictionaries = {}; //
+export let playerRecentgamesDictionaries = {};
+var playersInQueue = [];
+var playersInParty = [];
+export let queueDictionaries = {};
+export let playerProfileDictionaries = {}
+export let legacyQueuesDictionaries = {}
+export let playerFriendsDictionaries = {};
+export let playerLanguages = {};
+export let questCompletionTimes = {};
+export let playerChecksDictionary = {};
+export let playerSlumberTickets = {};
+export let playerChannel = {};
+export let playerBridgingTimes = {}
+export let playerActiveChallenges = {}
+export let safelistJson = {}
+export let playerDataDictionary = {}
+var windowIsHidden = false
+
+
+// import safelistData from '/Users/diamond/Documents/GitHub/John/src/safelist.json';
+
+// safelistJson = safelistData
+// console.log(safelistData)
+const APIKEY = "084ec062-a4da-4ec2-90da-5e1c8545a2f8"
+
+
+const listener = new GlobalKeyboardListener();
+listener.addListener((e) => {
+  if (e.state === 'DOWN') { // Key down event
+
+    if (e.name === toggleKey) {
+      if (windowIsHidden) {
+        ipcRenderer.send("windowEvent", "show");
+      } else {
+        ipcRenderer.send("windowEvent", "hide");
+      }
+      windowIsHidden = !windowIsHidden; // Toggle the window state
+    }
+  }
+});
 
 
 
@@ -15,13 +72,13 @@ const fs = require('fs/promises'); // Import the 'fs' module for file operations
 
 
 function formatTimeDifference(seconds) {
-  const yearInSeconds = 31536000; // 365 days in seconds (approximately)
-  const monthInSeconds = 2592000; // 30 days in seconds (approximately)
-  const dayInSeconds = 86400; // 24 hours in seconds
-  const hourInSeconds = 3600; // 60 minutes in seconds
+  const yearInSeconds = 31536000;
+  const monthInSeconds = 2592000;
+  const dayInSeconds = 86400;
+  const hourInSeconds = 3600;
 
   let result = "";
-  let unitCount = 0; // Counter for the number of units added
+  let unitCount = 0;
 
   const years = Math.floor(seconds / yearInSeconds);
   if (years > 0 && unitCount < 2) {
@@ -54,14 +111,52 @@ function formatTimeDifference(seconds) {
 
 import dataStore from "../data/dataStore";
 import { sendNotification } from "./snackbarNotification";
-//import blacklistParser from "./blacklistParser";
 
 const ipcRenderer = useIpcRenderer();
+if (windowIsHidden) {
+  ipcRenderer.send("windowEvent", "hide");
+}
+async function getPugData(uuid, playerName) {
+  const apiUrl = `https://privatemethod.xyz/api/cubelify?key=0343cd01-3dc9-4aa4-97af-54c0d0bf6401&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Safari/537.36'
+  };
+
+  try {
+    const response = await fetch(apiUrl, { headers });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log(data)
+    const tagsDictionary = data.tags.reduce((acc, tag, index) => {
+      acc[index] = {
+        text: tag.text || '',
+        textColor: tag.textColor,
+        tooltip: tag.tooltip,
+        icon: tag.icon,
+        color: tag.color
+      };
+      return acc;
+    }, {});
+
+    // Append or update playerDataDictionary
+    playerDataDictionary[playerName] = {
+      ...(playerDataDictionary[playerName] || {}),
+      ...tagsDictionary
+    };
+    // console.log('playerDataDictionary:', playerDataDictionary);
+    return playerDataDictionary;
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    return null;
+  }
+}
+
 
 var players = [];
 async function getPlayerQueueData(playerName) {
-  const apiKey = '553c6494-8e2e-46a8-a369-0ed91196fe36';
-  const apiUrl = `https://api.antisniper.net/v2/player/queues?key=${apiKey}&player=${playerName}`;
+  const apiUrl = `https://api.antisniper.net/v2/player/queues?key=${APIKEY}&player=${playerName}`;
 
   try {
     const response = await fetch(apiUrl);
@@ -78,17 +173,15 @@ async function getPlayerQueueData(playerName) {
         },
       };
 
-      // Loop through data.data and extract UUIDs
       for (const queueItem of data.data) {
         for (const item of queueItem.queue) {
           playerData[playerName].queue.push(item.uuid);
         }
       }
 
-      // Append the playerData to queueDictionaries
       queueDictionaries[playerName] = playerData[playerName];
 
-
+      // console.log("Updated queue dictionary", queueDictionaries[playerName])
       return playerData;
     } else {
       throw new Error(`API request was not successful: ${JSON.stringify(data)}`);
@@ -98,26 +191,21 @@ async function getPlayerQueueData(playerName) {
     return {};
   }
 }
-export let playerFriendsDictionaries = {}; // Global variable to store player friends dictionaries
-var playersInQueue = []; // Needed as the API Requests can't be handled instantly
-var playersInParty = [];
-export let queueDictionaries = {};
-export let playerProfileDictionaries = {} 
-export let legacyQueuesDictionaries = {}
+
+
 
 let lastUsedKeyIndex = 0;
 
 async function fetchSkyblockProfiles(uuid) {
   const apiKeys = [
-    '06c43cf8-bf39-450f-88b2-e3f8f13fe85b',
-    'a62fc2ad-7fa4-4016-b3e3-742cae405cf5'
+    '',
+
   ];
 
-  // Alternate between keys
   const apiKey = apiKeys[lastUsedKeyIndex];
   lastUsedKeyIndex = (lastUsedKeyIndex + 1) % apiKeys.length;
 
-  const apiUrl = `https://api.hypixel.net/v2/skyblock/profiles?key=${apiKey}&uuid=${uuid}`;
+  const apiUrl = `https://api.hypixel.net/v2/skyblock/profiles?key=06c43cf8-bf39-450f-88b2-e3f8f13fe85b&uuid=${uuid}`;
   try {
     const response = await fetch(apiUrl);
     if (!response.ok) {
@@ -126,22 +214,78 @@ async function fetchSkyblockProfiles(uuid) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`Error fetching profiles for UUID ${uuid} with API key ${apiKey}: ${error.message}`);
-    return { profiles: [] }; // Return an empty array on error
+    // console.error(`Error fetching profiles for UUID ${uuid} with API key ${apiKey}: ${error.message}`);
+    return { profiles: [] };
   }
 }
+async function createPlayerGuildDictionary(playerName) {
+  const url = `https://api.sk1er.club/guild/player/${playerName}`;
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.0.0 Safari/537.36'
+  };
+
+  try {
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data. Status code: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success && data.guild && data.guild.members) {
+      const guildMembers = data.guild.members;
+      const playerGuildDictionary = {};
+
+      guildMembers.forEach(member => {
+        const memberName = member.name;
+        const joinedEpochTime = member.joined;
+
+        if (!playerGuildDictionary[playerName]) {
+          playerGuildDictionary[playerName] = [];
+        }
+
+        playerGuildDictionary[playerName].push({
+          name: memberName,
+          joined: joinedEpochTime
+        });
+      });
+
+      return playerGuildDictionary;
+    } else {
+      playerGuildDictionary[playerName] = {};
+      return playerGuildDictionary;
+    }
+  } catch (error) {
+    console.error(`Error fetching guild data for ${playerName}: ${error.message}`);
+    playerGuildDictionary[playerName] = {};
+    return playerGuildDictionary;
+  }
+}
+
+async function fetchData(playerName) {
+  const newPlayerGuildData = await createPlayerGuildDictionary(playerName);
+
+  const updatedPlayerGuildDictionary = {
+    ...playerGuildDictionary,
+    ...newPlayerGuildData,
+  };
+
+  playerGuildDictionary = updatedPlayerGuildDictionary;
+
+  // console.log("Updated guild dictionary:", playerGuildDictionary);
+}
+
 async function createPlayerProfileDictionary(uuid, playerName) {
 
   try {
     const profilesData = await fetchSkyblockProfiles(uuid);
 
-    // Create a separate dictionary for this player
     const playerDictionary = {
       ign: playerName,
-      members: {} // Use an object to store member UUIDs and their associated data
+      members: {}
     };
 
-    // Iterate through profiles and save first_join under each member's UUID
     profilesData.profiles.forEach(profile => {
       const profileMembers = profile.members;
       for (const memberUUID in profileMembers) {
@@ -153,14 +297,11 @@ async function createPlayerProfileDictionary(uuid, playerName) {
       }
     });
 
-    // Update the global dictionary for this specific player
     playerProfileDictionaries[playerName] = playerDictionary;
-
-    // Log the updated dictionary
+    // console.log(playerProfileDictionaries)
 
   } catch (error) {
     console.error(`Error fetching profiles for ${playerName}: ${error.message}`);
-    // In case of error, ensure an empty structure for consistency
     playerProfileDictionaries[playerName] = {
       ign: playerName,
       members: {}
@@ -168,9 +309,54 @@ async function createPlayerProfileDictionary(uuid, playerName) {
   }
 }
 
-async function createLegacyQueuesDictionary(playerName) {
-  const apiKey = '553c6494-8e2e-46a8-a369-0ed91196fe36';
-  const apiUrl = `https://api.antisniper.net/v2/player/queues/legacy?key=${apiKey}&player=${playerName}`;
+async function createPlayerChecksDictionary(playerName) {
+  const url = `https://api.antisniper.net/v2/player/checks?player=${playerName}&key=9ef7ff59-e9ee-4f50-8998-4e6130122845`;
+
+  const headers = {
+    'User-Agent': 'Apple Gecko',
+  };
+  try {
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success && data.data.length > 0) {
+      const timestamps = data.data.map(entry => entry.timestamp);
+      playerChecksDictionary[playerName] = {
+        playerName, // equivalent to playerName: playerName
+        data
+      };
+      console.log("Player Checks Dictionary", playerChecksDictionary);
+
+      return timestamps; // Returning timestamps if needed elsewhere
+    } else {
+      throw new Error(`API request was not successful: ${JSON.stringify(data)}`);
+    }
+  } catch (error) {
+    console.error(`Error fetching player checks for ${playerName}: ${error.message}`);
+    return []; // Return an empty array in case of error
+  }
+}
+
+
+
+// async function loadSafelistJson() {
+//   try {
+//     const data = await fs.readFile(path, 'utf8');
+//     safelistJson = JSON.parse(data);
+//     // console.log('Safelist JSON reloaded successfully.');
+//     // console.log(safelistJson)
+//   } catch (error) {
+//     console.error('Failed to reload safelist JSON:', error);
+//   }
+// }
+
+async function createLegacyQueuesDictionary(uuid, playerName) {
+  const apiUrl = `https://api.antisniper.net/v2/player/queues/legacy?key=${APIKEY}&player=${uuid}`;
+
 
   try {
     const response = await fetch(apiUrl);
@@ -181,25 +367,25 @@ async function createLegacyQueuesDictionary(playerName) {
     const data = await response.json();
 
     if (data.success) {
-      const tablistUuids = []; // Create an array to store tablist UUIDs
+      const tablistUuids = [];
 
-      // Iterate through all data entries
       for (const entry of data.data) {
-        // Iterate through the tablist entries and extract UUIDs
         for (const playerName in entry.tablist) {
           if (entry.tablist.hasOwnProperty(playerName)) {
             const tablistEntry = entry.tablist[playerName];
             if (typeof tablistEntry === 'string') {
-              // Check if it's a UUID (string)
-              const uuid = tablistEntry.replace(/[^a-f0-9]/ig, ''); // Remove all non-hex characters
+              const uuid = tablistEntry.replace(/[^a-f0-9]/ig, '');
               tablistUuids.push(uuid);
             }
           }
         }
       }
-
-      // Append the tablistUuids to legacyQueuesDictionaries
-      legacyQueuesDictionaries[playerName] = tablistUuids;
+      const ign = playerName
+      legacyQueuesDictionaries[playerName] = {
+        ign,  // equivalent to ign: ign
+        tablistUuids  // equivalent to tablistUuids: tablistUuids
+      };
+      // console.log("Legacy Queue Dictionary", legacyQueuesDictionaries)
 
       return tablistUuids;
     } else {
@@ -210,11 +396,97 @@ async function createLegacyQueuesDictionary(playerName) {
     return [];
   }
 }
-async function fetchFriends(playerName) {
-  const apiUrl = `https://api.sk1er.club/friends/${playerName}`;
+
+async function updatePlayerLanguage(uuid, playerName) {
+  const apiUrl = `https://api.hypixel.net/player?key=fd1101bd-7e5c-4057-8985-0316fd5b8237&uuid=${uuid}`;
+
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    // console.log(data)
+    if (data.success && data.player) {
+      // Extract the user language from the player data
+      // console.log("SUCCESS")
+      // const userLanguage = data.player.userLanguage || 'ENGLISH'; // Defaulting to 'ENGLISH' if not present
+      // const userChannel = data.player.channel || "ALL"
+      // const bridgingTime = data.player.stats.Bedwars.practice.records["bridging_distance_30:elevation_NONE:angle_STRAIGHT:"] || 0;
+      // const activeChallenge = data.player.stats.Bedwars.selected_challenge_type || 'NONE'
+      // console.log(playerLanguages)
+      // Update the global dictionary with the player's name and their language
+
+
+
+      // Initialize or update the player's quest completion times
+      questCompletionTimes[playerName.toLowerCase()] = { times: [] }; // Initialize the times array
+
+      // Loop through each quest and extract completion times
+      const quests = data.player.quests || {};
+      Object.values(quests).forEach(quest => {
+        const completions = quest.completions || [];
+        const completionTimes = completions.map(completion => completion.time);
+        // Now we are sure questCompletionTimes[playerName.toLowerCase()] is an array, so we can safely use .push
+        questCompletionTimes[playerName.toLowerCase()].times.push(...completionTimes);
+
+      });
+
+      // console.log(`Updated playerLanguages for ${playerName}:`, playerLanguages);
+      // console.log(`Updated questCompletionTimes for ${playerName}:`, questCompletionTimes[playerName.toLowerCase()]);
+      // console.log(`updated channel for ${playerName}`, playerChannel[playerName.toLowerCase()]);
+      // console.log(`updated tickets for ${playerName}:`, playerSlumberTickets[playerName.toLowerCase()]);
+      // console.log(`updated bridge times for ${playerName}:`, playerBridgingTimes[playerName.toLowerCase()]);
+      // console.log(`updated challenge for ${playerName}:`, playerActiveChallenges[playerName.toLowerCase()]);
+
+    } else {
+      throw new Error(`API request was not successful or 'player' data is missing: ${JSON.stringify(data)}`);
+    }
+  } catch (error) {
+    console.error(`Error fetching data for ${playerName}: ${error.message}`);
+  }
+}
+
+
+
+async function updatePlayerFriends(playerName) {
+  const apiUrl = `https://api.antisniper.net/v2/namemc/archive?key=${APIKEY}&name=${playerName}`;
+
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success && data.following) {
+      // Extract the names of the players being followed (friends)
+      const friendsData = data.following.map(entry => entry.name);
+
+      // Update the global dictionary with the player's name, IGN, and their friends
+      playerFriendsDictionaries[playerName] = {
+        ign: playerName,
+        friends: friendsData
+      };
+
+      // console.log(`Updated playerFriendsDictionaries for ${playerName}:`, playerFriendsDictionaries);
+    } else {
+      // throw new Error(`API request was not successful or 'following' data is missing: ${JSON.stringify(data)}`);
+    }
+  } catch (error) {
+    console.error(`Error fetching 'following' players for ${playerName}: ${error.message}`);
+  }
+}
+
+
+async function fetchRecentGames(uuid, playerName) {
+  let normalizedPlayerUUID = uuid.replace(/-/g, '');
+  const apiUrl = `http://127.0.0.1:8000/recentgames?api_key=John&uuid=${normalizedPlayerUUID}`;
   try {
     const headers = {
-      'User-Agent': 'Apple Gecko', // Set your custom User-Agent header here
+      'User-Agent': 'Apple Gecko',
     };
     const response = await fetch(apiUrl, { headers });
     if (!response.ok) {
@@ -223,37 +495,39 @@ async function fetchFriends(playerName) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`Error fetching friends for ${playerName}: ${error.message}`);
-    return { friends: [] }; // Return an empty array on error
+    console.error(`Error fetching recentgames for ${playerName}: ${error.message}`);
+    return { friends: [] };
   }
 }
-async function createPlayerFriendsDictionary(playerName) {
+async function createRecentGamesDictionary(uuid, playerName) {
   try {
-      const friendsData = await fetchFriends(playerName);
+    const recentGamesData = await fetchRecentGames(uuid, playerName);
 
-      // Check if the fetch was unsuccessful and initialize friends as an empty array
-      if (friendsData && friendsData.success === false) {
-          console.log("bye bye")
-      } else {
-          // Update the global dictionary for this specific player
-          playerFriendsDictionaries[playerName] = {
-              ign: playerName,
-              friends: friendsData
-          };
-      }
+    if (recentGamesData && recentGamesData.success === false) {
+      console.log("API request unsuccessful");
+    } else {
+      // Extracting only the dates from the recentGames array
+      const dates = recentGamesData.recentGames.map(game => game.date);
+
+      // Storing the dates in the dictionary
+      playerRecentgamesDictionaries[playerName] = {
+        ign: playerName,
+        recentGamesDates: dates // Only storing the dates
+      };
+      // console.log(playerRecentgamesDictionaries);
+    }
 
   } catch (error) {
-      console.error(`Error fetching friends for ${playerName}:`, error.message);
-      // In case of an error, ensure an empty structure for consistency
-      playerFriendsDictionaries[playerName] = {
-          ign: playerName,
-          friends: []
-      };
+    console.error(`Error fetching recent games for ${playerName}:`, error.message);
+    playerRecentgamesDictionaries[playerName] = {
+      ign: playerName,
+      recentGamesDates: [] // Setting an empty array if there's an error
+    };
   }
 }
 
 
-// Now, let's implement the friend-checking logic
+
 
 const removeDuplicates = () => {
   playersInQueue = [...new Set(playersInQueue)];
@@ -298,135 +572,170 @@ const getRatio = (a, b) => {
 };
 var keyCount;
 var keyMax;
+var pingDays = {};
+
+const pingAvgTotal = {};
+
 const getPingData = async (user) => {
   if (keyCount >= keyMax + 5) return { throttle: true, username: user };
 
-  return new Promise(async resolve => {
-      const requestTime = Date.now();
-      const url = `https://api.antisniper.net/v2/player/ping?key=553c6494-8e2e-46a8-a369-0ed91196fe36&player=${user}`;
-              const apiUrl = `https://api.antisniper.net/v2/player/days?key=553c6494-8e2e-46a8-a369-0ed91196fe36&player=${user}`;
+  return new Promise(async (resolve) => {
+    const requestTime = Date.now();
+    const url = `https://api.antisniper.net/v2/player/ping?key=9ef7ff59-e9ee-4f50-8998-4e6130122845&player=${user}`;
+    const headers = {
+      'User-Agent': 'Mr. Take That Jack David(jd)'
+    };
+    try {
+      const response = await fetch(url, { headers });
+      const body = await response.json();
 
-      const data = await fetch(url);
-
-      try {
-          var body = await data.json();
-      } catch {
-          resolve({ outage: true, username: user });
-      }
-
-      if (body.throttle) resolve({ throttle: true, username: user });
-      if (body.cause == "Invalid API key") resolve({ invalid: true, username: user });
-      if (body.success === false || body.data.length === 0) {
-          resolve({ exists: false, username: user });
+      if (body.throttle) {
+        resolve({ throttle: true, username: user });
+      } else if (body.cause == "Invalid API key") {
+        resolve({ invalid: true, username: user });
+      } else if (body.success === false || body.data.length === 0) {
+        resolve({ exists: false, username: user });
       } else {
-          // Extract the most recent avg ping
-          const mostRecentAvgPing = body.data[body.data.length - 1].avg;
+        const uniqueDays = new Set();
+        body.data.forEach((pingRecord) => uniqueDays.add(pingRecord.day));
 
-          resolve({
-              ping: mostRecentAvgPing || "N/A",
-              requestedAt: requestTime
-          });
+        const daysCount = uniqueDays.size;
+
+        const allPings = body.data.map((pingRecord) => pingRecord.avg);
+        const mostRecentPing = allPings.pop();
+        const averagePing = allPings.reduce((sum, ping) => sum + ping, 0) / (daysCount - 1);
+
+        pingDays[user] = daysCount || 0;
+        // console.log(pingDays)
+        pingAvgTotal[user] = averagePing.toFixed(0);
+
+        resolve({
+          ping: mostRecentPing || "ND",
+          daysCount: daysCount,
+          requestedAt: requestTime,
+        });
       }
+    } catch (error) {
+      console.error(`Error fetching ping data for ${user}: ${error.message}`);
+      resolve({ outage: true, username: user });
+    }
   });
 };
+
+
 async function findLongestGap(user) {
-
   return new Promise(async (resolve) => {
-      try {
-          const requestTime = Date.now();
-          const url = `https://api.antisniper.net/v2/player/played?key=553c6494-8e2e-46a8-a369-0ed91196fe36&player=${user}&lookback=7884000`;
-          const response = await fetch(url);
-          const data = await response.json();
+    try {
+      const requestTime = Date.now();
+      const url = `https://api.antisniper.net/v2/player/played?key=${APIKEY}&player=${user}&legacy=true`;
+      const response = await fetch(url);
+      const data = await response.json();
 
-          if (!data.success || !data.data || data.data.length === 0) {
-              resolve('NoData');
-              return;
-          }
-
-          let longestGap = 0;
-          let longestGapStart = null;
-          let longestGapEnd = null;
-          const oneWeekAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60); // Current time minus two weeks
-
-          for (let i = 0; i < data.data.length - 1; i++) {
-              const currentTimestamp = data.data[i].timestamp;
-              const nextTimestamp = data.data[i + 1].timestamp;
-              const timeDifference = nextTimestamp - currentTimestamp;
-
-              // Check if the gap is the longest and if the end of the gap is within the last two weeks
-              if (timeDifference > longestGap && nextTimestamp >= oneWeekAgo) {
-                  longestGap = timeDifference;
-                  longestGapStart = currentTimestamp;
-                  longestGapEnd = nextTimestamp;
-              }
-          }
-
-          if (longestGap > 0) {
-              resolve({
-                  gap: longestGap, // Include the gap duration
-
-                  longestGapStart, // Add the start and end timestamps to the result
-                  longestGapEnd,
-              });
-          } else {
-              resolve('NoGapFound');
-          }
-      } catch (error) {
-          console.error('Error:', error.message);
-          resolve({ error: error.message, username: user });
+      if (!data.success || !data.data || data.data.length === 0) {
+        resolve('NoData');
+        return;
       }
+
+      let longestGap = 0;
+      let longestGapStart = null;
+      let longestGapEnd = null;
+      const oneWeekAgo = Math.floor(Date.now() / 1000) - (6 * 24 * 60 * 60);
+
+      // Reverse the data array
+      const reversedData = data.data.reverse();
+
+      for (let i = 0; i < reversedData.length - 1; i++) {
+        const currentTimestamp = reversedData[i].timestamp;
+        const nextTimestamp = reversedData[i + 1].timestamp;
+        const timeDifference = nextTimestamp - currentTimestamp;
+
+        if (timeDifference > longestGap && nextTimestamp >= oneWeekAgo) {
+          longestGap = timeDifference;
+          longestGapStart = currentTimestamp;
+          longestGapEnd = nextTimestamp;
+        }
+      }
+
+      if (longestGap > 0) {
+        resolve({
+          gap: longestGap,
+          longestGapStart,
+          longestGapEnd,
+        });
+      } else {
+        resolve('NoGapFound');
+      }
+    } catch (error) {
+      console.error('Error:', error.message);
+      resolve({ error: error.message, username: user });
+    }
   });
-} 
+}
+
+
 
 const addPlayer = async (player, options) => {
 
-  if (player in johnPlayers){
-    console.log("")}
-    else{
-      persistentPlayerEncounters[player] = (persistentPlayerEncounters[player] || 0) + 1;
-     } 
-  
+  if (player in johnPlayers) {
+    // console.log("")
+  }
+  else {
+    persistentPlayerEncounters[player] = (persistentPlayerEncounters[player] || 0) + 1;
+  }
+
   if (cachedPlayers[player]) {
 
-    await createPlayerFriendsDictionary(player);
-    await createLegacyQueuesDictionary(player);
-    console.log("Using cached player data for " + player);
+    // await fetchData(player)
+    // await updatePlayerFriends(player)
+    // await createPlayerChecksDictionary(player)
+    // console.log("Using cached player data for " + player);
 
-    // Use the cached player data directly
     var Player = cachedPlayers[player];
     johnPlayers[player] = Player;
 
     players.push(Player);
     removeDuplicates();
-    await getPlayerQueueData(Player.UUID);
-    await createPlayerProfileDictionary(Player.UUID, player);
+    // await getPlayerQueueData(Player.UUID);
+    // await createRecentGamesDictionary(Player.UUID, player);
+    // await createLegacyQueuesDictionary(Player.UUID, player);
 
-    console.log(Player);
+    // await createPlayerProfileDictionary(Player.UUID, player);
+
+    // console.log(Player);
   } else {
-    console.log("Fetching player data for " + player);
+    // console.log("Fetching player data for " + player);
 
-    await createPlayerFriendsDictionary(player);
-    await createLegacyQueuesDictionary(player);
-    const pingData = await getPingData(player);
+    // await fetchData(player)
+    // await updatePlayerFriends(player)
+    // await createPlayerChecksDictionary(player)
+
+
+    // console.log(pingAvgTotal)
     if (!options) options = {};
     if (!options.forced) playersInQueue.push(player);
     if (options.party) playersInParty.push(player);
     if (!players.some((p) => p.username === player) || options.forced) {
       axiosClient
-        .get(`https://api.antisniper.net/v2/hypixel/player?key=553c6494-8e2e-46a8-a369-0ed91196fe36&player=${player}&force_cache=true`, {
+        .get(`https://api.antisniper.net/v2/prism/hypixel/player?key=${APIKEY}&player=${player}&force_cache=true`, {
           headers: {
-            "Reason": "John",
+            "Reason": "Player Stats lmk if can't use",
           }
         })
         .then(async (data) => {
           if ((playersInQueue.includes(player) && inLobby !== true) || options.forced) {
-            console.log(data);
+            // console.log(data);
 
-            // Create a new Player object using the fetched data
-            var Player = { success: true, username: data.data.ign || 0, UUID: data.data.uuid || 0, rank: data.data.general_stats.rank || null, level: data.data.general_stats.bedwars_star || 0, plusColor: data.data.general_stats.rankPlusColor || 0, plusPlusColor: data.data.general_stats.monthlyRankColor || 0, ping: pingData.ping || "ND", ...data.data.overall || 0 };
-            await getPlayerQueueData(Player.UUID);
-            await createPlayerProfileDictionary(Player.UUID, player);
-            console.log(Player);
+            var Player = { success: true, username: data.data.ign || 0, UUID: data.data.uuid || 0, dasheduuid: data.data._id, rank: data.data.general_stats.rank || null, level: data.data.general_stats.bedwars_star || 0, plusColor: data.data.general_stats.rankPlusColor || 0, plusPlusColor: data.data.general_stats.monthlyRankColor || 0, ...data.data.overall || 0 };
+            // await getPlayerQueueData(Player.UUID);
+
+
+            // await createPlayerProfileDictionary(Player.UUID, player);
+            // await createRecentGamesDictionary(Player.UUID, player);
+            // await createLegacyQueuesDictionary(Player.UUID, player);
+            // await updatePlayerLanguage(Player.UUID, player)
+
+
+            // console.log(Player);
 
             Player.cores = {
 
@@ -447,43 +756,87 @@ const addPlayer = async (player, options) => {
               },
             };
 
-            if (dataStore.get("developerMode") === true) {
-              Player.headers = data.headers;
-            }
+            // if (dataStore.get("developerMode") === true) {
+            //   Player.headers = data.headers;
+            // }
 
             if (playersInParty.includes(player)) Player.icons.push({ tooltip: "Party", color: "indigo", name: "mdi-account-group" });
             if (options.mention) Player.icons.push({ tooltip: "This person mentioned you!", color: "yellow-lighten-3", name: "mdi-at" });
 
-            // Add the player to the list
             players.push(Player);
             removeDuplicates();
             cachedPlayers[player] = Player;
             johnPlayers[player] = Player;
-
-
-            // Fetch and update the longest gap for the player
-            findLongestGap(player).then((gapper) => {
-              if (typeof gapper === 'object' && gapper.hasOwnProperty('gap')) {
-                Player.gaps = formatTimeDifference(gapper.gap) || "ND";
-                console.log(Player.gaps)
+            getPingData(player).then((pinger) => {
+              if (typeof pinger === 'object' && pinger.hasOwnProperty('ping')) {
+                Player.ping = pinger.ping;
+                console.log(Player.ping);
               }
             });
+            getPugData(Player.UUID, player).then((data) => {
+              if (data) {
+                Player.pugData = data[player];
+              }
+            })
+            createPlayerChecksDictionary(player).then((data) => {
+              if (data) {
+                Player.checkData = data[player]
+              }
+            })
+
+            getPlayerQueueData(player).then((data) => {
+              if (data) {
+                Player.queueData = data[player]
+              }
+            })
+            updatePlayerFriends(player).then((data) => {
+              if (data) {
+                Player.playerFriends = data[player]
+              }
+            })
+            createLegacyQueuesDictionary(Player.UUID, player).then((data) => {
+              if (data) {
+                Player.LegacyQueues = data[player]
+              }
+            })
+            updatePlayerLanguage(Player.UUID, player).then((data) => {
+              if (data) {
+                Player.Languages = data[player]
+              }
+            })
+            createPlayerProfileDictionary(Player.UUID, player).then((data) => {
+              if (data) {
+                Player.ProfileDictionary = data[player]
+              }
+            })
+
+
+
+            // findLongestGap(player).then((gapper) => {
+            //   if (typeof gapper === 'object' && gapper.hasOwnProperty('gap')) {
+            //     Player.gaps = formatTimeDifference(gapper.gap) || "";
+            //     Player.johnGap = gapper.gap
+            //     Player.longestGapStart = gapper.longestGapStart
+            //     Player.longestGapEnd = gapper.longestGapEnd
+            //     // console.log(Player.gaps)
+            //     // console.log(Player.longestGapStart)
+            //     // console.log(Player.longestGapEnd)
+
+            //   }
+            // });
           }
         })
         .catch((error) => {
           if (inLobby !== true || options.forced) {
             if (error.response && error.response.data) {
               if (error.response.data.player === null) {
-                // Handle the case where response has player: null
                 players.push({ success: true, player: null, username: player });
               } else {
-                // Handle other error cases
                 let cause = (error.response.data.cause) ? error.response.data.cause : "Unknown Error";
                 if (cause.toLowerCase() === "this player never played hypixel" && inLobby === false) cause = "Invalid UUID or Username";
                 players.push({ success: false, cause, username: player });
               }
             } else {
-              // Handle cases where data property is missing
               players.push({ success: false, cause: "Unknown Error", username: player });
             }
             removeDuplicates();
@@ -511,18 +864,58 @@ const clear = () => {
   players = [];
   playersInParty = [];
   playerFriendsDictionaries = [];
-  playerProfileDictionaries= [];
+  playerProfileDictionaries = [];
   queueDictionaries = [];
   legacyQueuesDictionaries = [];
+  playerGuildDictionary = [];
+  playerRecentgamesDictionaries = [];
+  questCompletionTimes = [];
 };
+// async function addPlayerToSafeList(playerName) {
+//   try {
+//     // Try to read the existing JSON file
+//     let data = await fs.readFile(path, { encoding: 'utf8' });
+//     let safelist = JSON.parse(data);
+
+//     // Check if the player is already in the safelist
+//     if (safelist.hasOwnProperty(playerName)) {
+//       // console.log(`${playerName} is already in the safelist.`);
+//       return; // Exit the function if the player is already in the safelist
+//     }
+
+//     // Update the safelist with the new player and current timestamp
+//     safelist[playerName] = new Date().getTime(); // Store the timestamp directly
+
+//     // Write the updated safelist back to the file
+//     await fs.writeFile(path, JSON.stringify(safelist, null, 2), { encoding: 'utf8' });
+//     // console.log(`Added ${playerName} to the safelist.`);
+//   } catch (error) {
+//     if (error.code === 'ENOENT') {
+//       // File does not exist, create it with the player as the first entry
+//       // console.log('Safelist file not found, creating new file.');
+//       let safelist = {
+//         [playerName]: new Date().getTime() // Directly store the timestamp
+//       };
+//       await fs.writeFile(path, JSON.stringify(safelist, null, 2), { encoding: 'utf8' });
+//       // console.log(`Added ${playerName} to the new safelist.`);
+//     } else {
+//       // Other errors
+//       console.error(`Error adding ${playerName} to safelist:`, error);
+//     }
+//   }
+// }
+
+
 
 var lastMessage = "";
-
 const parseMessage = (msg) => {
   if (msg.indexOf("ONLINE:") !== -1 && msg.indexOf(",") !== -1) {
     clear();
     inLobby = false;
-    let who = msg.substring(8).split(", ");
+    // loadSafelistJson();
+
+    who = msg.substring(8).split(", ");
+    // console.log(who)
     for (let i = 0; i < who.length; i++) {
       if (who[i].includes("[") && i == who.length - 1) {
         addPlayer(who[i].slice(0, who[i].indexOf("[") - 1)); // Needed for Anti-Spam features in Clients that compact chat by adding [x3] etc.
@@ -531,20 +924,20 @@ const parseMessage = (msg) => {
       addPlayer(who[i]);
     }
   }
-   else if (msg.indexOf("has joined") !== -1 && msg.indexOf(":") === -1) {
+  else if (msg.indexOf("has joined") !== -1 && msg.indexOf(":") === -1) {
     inLobby = false;
     addPlayer(msg.split(" ")[0]);
-  
+
   } else if (msg.indexOf("has quit") !== -1 && msg.indexOf(":") === -1) {
     inLobby = false;
     removePlayer(msg.split(" ")[0]);
   }
-   else if (msg.indexOf("Sending you") !== -1 && msg.indexOf(":") === -1) {
-    johnPlayers= {};
+  else if (msg.indexOf("Sending you") !== -1 && msg.indexOf(":") === -1) {
+    johnPlayers = {};
 
     inLobby = false;
     clear();
-    johnPlayers= {};
+    johnPlayers = {};
 
     if (dataStore.get("queueNotification") === true) {
       ipcRenderer.send("notification", "You have queued a game!");
@@ -554,7 +947,7 @@ const parseMessage = (msg) => {
     }
   } else if (!inLobby && (msg.indexOf("joined the lobby!") !== -1 || msg.indexOf("rewards!") !== -1 || (lastMessage.trim().length === 0 && msg.trim().length === 0)) && msg.indexOf(":") === -1) {
     clear();
-    johnPlayers= {};
+    johnPlayers = {};
 
     if (dataStore.get("hideIngame") === true) {
       ipcRenderer.send("windowEvent", "show");
@@ -564,11 +957,13 @@ const parseMessage = (msg) => {
     let pmsg = msg.substring(msg.indexOf(":") + 2);
     let who = pmsg.split(" ");
     for (let i = 0; i < who.length; i++) {
-      if (/^[a-zA-Z0-9_]+$/.test(who[i])) {
-        addPlayer(updateStringCondition(who[i]), { forced: true, party: true });
+      const playerName = updateStringCondition(who[i].trim());
+      if (playerName && /^[a-zA-Z0-9_]+$/.test(playerName)) {
+        addPlayer(playerName, { forced: true, party: true });
+        excludedPlayers.push(playerName);
       }
     }
-    addPlayer(dataStore.get("player"), { forced: true, party: true });
+
   } else if (msg.indexOf("joined the party") !== -1 && msg.indexOf(":") === -1 && inLobby) {
     addPlayer(updateStringCondition(msg), { forced: true, party: true });
     addPlayer(dataStore.get("player"), { forced: true, party: true });
@@ -593,13 +988,31 @@ const parseMessage = (msg) => {
   } else if ((msg.indexOf("FINAL KILL") !== -1 || msg.indexOf("disconnected") !== -1) && msg.indexOf(":") === -1) {
     inLobby = false;
     removePlayer(msg.split(" ")[0]);
+    const playerName = msg.split(" ")[0];
+
+    safelistedPlayers.push(playerName);
+    // addPlayerToSafeList(playerName).catch(console.error);
+
+
+
+
   } else if (msg.indexOf("reconnected") !== -1 && msg.indexOf(":") === -1) {
     inLobby = false;
     addPlayer(msg.split(" ")[0]);
-  } else if ((msg.indexOf("The game starts in 1 second!") !== -1 || msg.indexOf("The game is starting in 1 seconds!") !== -1 || msg.indexOf("The game is starting in 0 seconds!") !== -1) && msg.indexOf(":") === -1) {
+  } else if (msg.indexOf("Can't find a player by the name of '.s'") !== -1) {
+    ipcRenderer.send("windowEvent", "show");
+
+  }
+  else if (msg.indexOf("Can't find a player by the name of '.h'") !== -1) {
+    ipcRenderer.send("windowEvent", "hide");
+
+  }
+
+  else if ((msg.indexOf("Protect your bed and destory the enemy beds.") !== -1 || msg.indexOf("The game is starting in 1 seconds!") !== -1 || msg.indexOf("The game is starting in 0 seconds!") !== -1) && msg.indexOf(":") === -1) {
     if (dataStore.get("hideIngame") === true) {
       ipcRenderer.send("windowEvent", "hide");
     }
+
     if (dataStore.get("gameStartNotification") === true) {
       ipcRenderer.send("notification", "The game has started!");
     }
@@ -607,11 +1020,47 @@ const parseMessage = (msg) => {
   lastMessage = msg;
 };
 
+// app.whenReady().then(() => {
+//   globalShortcut.register('`', () => {
+//     // Check the current state of the window and toggle it
+//     if (windowIsHidden) {
+//       ipcRenderer.send("windowEvent", "show");
+//     } else {
+//       ipcRenderer.send("windowEvent", "hide");
+//     }
+//     // Update the windowIsHidden variable after toggling the window state
+//     windowIsHidden = !windowIsHidden;
+//   });
+// });
+
+// Unregister all global shortcuts when the app is quitting
 
 
-const getPlayers = () => {
-  return players
+const getPlayers = (who) => {
+  if (!who || who.length === 0) {
+    return players;
+  }
+
+  return players.sort((a, b) => {
+    const indexA = who.indexOf(a.username);
+    const indexB = who.indexOf(b.username);
+
+    if (indexA === -1 && indexB === -1) return 0;  // 
+    if (indexA === -1) return 1;  //
+    if (indexB === -1) return -1; // 
+
+    if (indexA > indexB) {
+      return 1;
+    } else if (indexA < indexB) {
+      return -1;
+    }
+    return 0;
+  });
 };
+
+
+
+
 
 
 var refreshing = false;
@@ -632,8 +1081,6 @@ const refreshPlayers = () => {
  * @param {String} string
  * @returns
  * Check if "[" is present in string
- * If yes, update inputString with the second part of msg string separated by spaces
- * Useful when the user has no rank or no prefix is present in the returned string
  */
 const updateStringCondition = (string) => {
   var inputString = string.split(" ")[0];
@@ -643,4 +1090,4 @@ const updateStringCondition = (string) => {
   return inputString;
 };
 
-export { parseMessage, getPlayers, addPlayer, refreshPlayers, clear };
+export { parseMessage, getPlayers, addPlayer, refreshPlayers, clear, who, pingDays, pingAvgTotal };

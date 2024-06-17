@@ -21,15 +21,15 @@ export default (value, stat, mode) => {
     if (value >= 1_250) return "§f" + value.toLocaleString("en-US");
   } else if (stat === "WS") {
     if (mode !== "4v4") {
-      if (value >= 100) return "§5" + value.toLocaleString("en-US");
-      if (value >= 75) return "§d" + value;
-      if (value >= 50) return "§4" + value;
+      if (value >= 300) return "§2" + value.toLocaleString("en-US");
+      if (value >= 150) return "§b" + value;
+      if (value >= 100) return "§9" + value;
+      if (value >= 75) return "§5" + value;
       if (value >= 40) return "§c" + value;
-      if (value >= 30) return "§6" + value;
-      if (value >= 20) return "§e" + value;
-      if (value >= 15) return "§2" + value;
-      if (value >= 10) return "§a" + value;
-      if (value >= 5) return "§f" + value;
+      if (value >= 20) return "§6" + value;
+      if (value >= 5) return "§e" + value;
+      if (value >= 3) return "§f" + value;
+      if (value < 3) return "§7" + value;
     } else {
       if (value >= 1000) return "§5" + value.toLocaleString("en-US");
       if (value >= 750) return "§d" + value;
@@ -38,8 +38,8 @@ export default (value, stat, mode) => {
       if (value >= 300) return "§6" + value;
       if (value >= 200) return "§e" + value;
       if (value >= 100) return "§2" + value;
-      if (value >= 50) return "§a" + value;
-      if (value >= 25) return "§f" + value;
+      if (value >= 50) return "§f" + value;
+      if (value >= 25) return "§7" + value;
     }
   } else if (stat === "WLR") {
     if (value >= 250) return "§4" + value.toLocaleString("en-US");
@@ -54,14 +54,15 @@ export default (value, stat, mode) => {
     else return "§a" + value.toLocaleString("en-US")
     
   } else if (stat === "FKDR") {
-    if (value >= 100) return "§5" + value.toLocaleString("en-US");
-    if (value >= 50) return "§d" + value;
-    if (value >= 25) return "§4" + value;
-    if (value >= 10) return "§c" + value;
+    if (value >= 50) return "§2" + value;
+    if (value >= 25) return "§b" + value;
+    if (value >= 15) return "§9" + value;
+
+    if (value >= 10) return "§5" + value;
     if (value >= 7) return "§6" + value;
     if (value >= 5) return "§e" + value;
-    if (value >= 3) return "§2" + value;
-    if (value >= 2) return "§a" + value;
+    if (value >= 3) return "§e" + value;
+    if (value >= 2) return "§e" + value;
     if (value >= 1) return "§f" + value;
   } else if (stat === "BBLR") {
     if (value >= 100) return "§5" + value.toLocaleString("en-US");

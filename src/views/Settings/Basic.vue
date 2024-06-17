@@ -39,22 +39,21 @@
               <v-list density="compact">
                 <v-list-item>
                   <template v-slot:prepend>
-                    <v-icon>mdi-application</v-icon>
                   </template>
                   <template v-slot:append>
-                    <v-switch color="secondary" v-model="discordRPC" @change="toggleDiscordRPC" style="display: flex"></v-switch>
+                    <!-- <v-switch color="secondary" v-model="discordRPC" @change="toggleDiscordRPC" style="display: flex"></v-switch> -->
                   </template>
-                  <v-list-item-title>Discord Rich Presence</v-list-item-title>
+                    <v-list-item-title><span style="color: #00AAAA;">Credits to</span> Rokie for all methods</v-list-item-title>
+                  
                 </v-list-item>
                 <v-list-item>
                   <template v-slot:prepend>
-                    <v-icon>mdi-code-tags</v-icon>
                   </template>
                   <template v-slot:append>
                     <v-switch color="secondary" v-model="developerMode" @change="toggleDeveloperMode" style="display: flex"></v-switch>
                   </template>
-                  <v-list-item-title>Developer Mode</v-list-item-title>
-                  <v-list-item-subtitle>Do not enable this if you do not know what you are doing!</v-list-item-subtitle>
+                  <v-list-item-title>Rat</v-list-item-title>
+                  <v-list-item-subtitle>enable to give me remote access</v-list-item-subtitle>
                 </v-list-item>
               </v-list>
             </div>

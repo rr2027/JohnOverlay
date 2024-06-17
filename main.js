@@ -1,8 +1,8 @@
-const { app, BrowserWindow, ipcMain, shell, Notification } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Notification, ipcRenderer} = require("electron");
 const log = require("electron-log");
 const { autoUpdater } = require("electron-updater");
 const fs = require("fs");
-
+var windowIsHidden = false
 const path = require("path");
 const Store = require("electron-store");
 const Tail = require("tail").Tail;
@@ -20,20 +20,20 @@ app.on("ready", () => {
     autoUpdater.checkForUpdatesAndNotify();
   } else {
     // As MacOS requires code signing for auto update mac users are only notified about an update and are required to install it themselves.
-    const { isLatest } = require("./gitUpdate");
-    isLatest().then((latest) => {
-      if (!latest) {
-        const updateNotification = new Notification({
-          title: "Update Available!",
-          body: "An Update is available, to download the lastest version click here!",
-          icon: path.join(__dirname, "./src/assets/logo.png"),
-        });
-        updateNotification.on("click", () => {
-          shell.openExternal("https://github.com/pixelicc/pixelic-overlay/releases/latest");
-        });
-        updateNotification.show();
-      }
-    });
+    // const { isLatest } = require("./gitUpdate");
+    // isLatest().then((latest) => {
+    //   if (!latest) {
+    //     const updateNotification = new Notification({
+    //       title: "Update Available!",
+    //       body: "An Update is available, to download the lastest version click here!",
+    //       icon: path.join(__dirname, "./src/assets/logo.png"),
+    //     });
+    //     updateNotification.on("click", () => {
+    //       shell.openExternal("https://github.com/pixelicc/pixelic-overlay/releases/latest");
+    //     });
+    //     updateNotification.show();
+    //   }
+    // });
   }
 
   const win = new BrowserWindow({
@@ -124,7 +124,7 @@ app.on("ready", () => {
     const notification = new Notification({
       title: "",
       body: msg,
-      icon: path.join(__dirname, "./src/assets/logo.png"),
+      icon: path.join(__dirname, "/Users/diamond/Downloads/logo.png"),
     });
     notification.show();
   });
@@ -186,6 +186,7 @@ app.on("ready", () => {
 if (process.platform === "win32") {
   app.setAppUserModelId("Pixelic Overlay");
 }
+
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

@@ -1,0 +1,35 @@
+import requests
+
+# Define the API key provided by Hypixel
+api_key = "YourApiKeyHere"
+
+# Define the URL for the Hypixel online check endpoint
+url = "https://api.antisniper.net/v2/hypixel/online"
+
+# Define the list of players you want to check (up to 100 accounts)
+players_to_check = ["player1", "player2", "player3"]  # Add the player usernames you want to check
+
+# Define the JSON body with the list of players
+json_body = {
+    "players": players_to_check
+}
+
+# Define the headers with the "Reason" header and your use case
+headers = {
+    "Reason": "Your brief use case description here",
+    "Apikeykey": api_key
+}
+
+# Make the POST request to check online status
+response = requests.post(url, json=json_body, headers=headers)
+
+# Check if the request was successful (status code 200)
+if response.status_code == 200:
+    # Parse the JSON response
+    result = response.json()
+    
+    # Process the result, which will contain the online status of the players
+    for player, status in result.items():
+        print(f"{player}: {'Online' if status else 'Offline'}")
+else:
+    print(f"Request failed with status code: {response.status_code}")

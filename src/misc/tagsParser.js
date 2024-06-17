@@ -1,25 +1,25 @@
-import axios from "axios";
+// import axios from "axios";
 
-var customTags = {};
+// var customTags = {};
 
-const updateData = async () => {
-  try {
-    customTags = (
-      "John"
-    ).data.tags;
-  } catch (error) {
-    console.error(error);
-  }
-};
+// const updateData = async () => {
+//   try {
+//     customTags = (
+//       "John"
+//     ).data.tags;
+//   } catch (error) {
+//     console.error(error);
+//   }
+// };
 
-updateData().then(() => {});
+// updateData().then(() => {});
 
-setInterval(async () => {
-  await updateData();
-}, 5 * 60 * 1000);
+// setInterval(async () => {
+//   // await updateData();
+// }, 5 * 60 * 1000);
 
-export default (UUID) => {
-  if (UUID === undefined) return [];
-  if (customTags[UUID] !== undefined) return customTags[UUID];
-  return [];
-};
+// export default (UUID) => {
+//   if (UUID === undefined) return [];
+//   if (customTags[UUID] !== undefined) return customTags[UUID];
+//   return [];
+// };

@@ -23,7 +23,7 @@
 import dataStore from "../../data/dataStore";
 import { ref } from "vue";
 
-const colums = ["WS", "Wins", "Ping", "Finals", "FKDR", "encs"];
+const colums = ["WS", "Gaps", "Ping", "Finals", "FKDR", "session"];
 
 const getColums = ref(0);
 getColums.value = dataStore.get("colums");

@@ -1,3 +1,4 @@
+import { safelistedPlayers } from "./overlay";
 const ranks = {
   OWNER: "§c[OWNER]",
   ADMIN: "§c[ADMIN]",
@@ -54,6 +55,7 @@ export default (rank, plusColor, plusPlusColor) => {
   if (rank === "VIP+"){
     return [`§a[VIP${plusColors[plusColor]}+§a]`,"§a"]
   }
+
   if (ranks[rank] !== undefined) {
     return [ranks[rank], ranksSimple[rank]];
   }
