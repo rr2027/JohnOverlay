@@ -1,7 +1,7 @@
 import requests
 import json
 
-ign = "Ghasp"
+ign = "Andorite"
 
 url = "https://www.shmeado.club/player/stats/" + ign + "/general/quests/"
 r = requests.get(url)
