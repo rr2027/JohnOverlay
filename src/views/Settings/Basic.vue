@@ -11,14 +11,16 @@
           <v-card title="General">
             <div class="ml-4 mr-4 mt-4">
               <v-divider :thickness="8" class="border-opacity-0"></v-divider>
-              <v-select label="Client / Log File" variant="outlined" :items="clients" prepend-icon="mdi-file" v-model="getClient" return-object @update:modelValue="setClient"></v-select>
+              <v-select label="Client / Log File" variant="outlined" :items="clients" prepend-icon="mdi-file"
+                v-model="getClient" return-object @update:modelValue="setClient"></v-select>
               <v-divider v-if="getClient === 'Custom'" :thickness="8" class="border-opacity-0"></v-divider>
-              <div v-if="getClient === 'Custom'"><v-text-field clearable label="Custom Log File Location" variant="outlined" prepend-icon="mdi-file-edit" v-model="getCustomLogFile" return-object @update:modelValue="setCustomLogFile"></v-text-field></div>
+              <div v-if="getClient === 'Custom'"><v-text-field clearable label="Custom Log File Location"
+                  variant="outlined" prepend-icon="mdi-file-edit" v-model="getCustomLogFile" return-object
+                  @update:modelValue="setCustomLogFile"></v-text-field></div>
               <v-divider :thickness="8" class="border-opacity-0"></v-divider>
-              <div class="d-flex justify-center">
-                <!-- <v-text-field :type="keyShown ? 'text' : 'password'" :append-icon="keyShown ? 'mdi-eye' : 'mdi-eye-off'" variant="outlined" @click:append="toggleKeyShow" label="Pixelic API-Key" persistent-placeholder :placeholder="keyPlaceHolder" prepend-icon="mdi-key" v-model="getKey" return-object @update:modelValue="setKey" :error-messages="keyErrors"></v-text-field> -->
-                <!-- <v-btn class="ml-4 mr-4 mt-3" variant="outlined" elevation="0" rounded="lg" @click="requestDiscordAuth">Get API-Key</v-btn> -->
-              </div>
+              <v-text-field clearable label="Toggle Key" variant="outlined" prepend-icon="mdi-file-edit"
+                v-model="getToggleKey" return-object @update:modelValue="setToggleKey"></v-text-field>
+              <v-divider :thickness="8" class="border-opacity-0"></v-divider>
             </div>
           </v-card>
         </v-col>
@@ -27,7 +29,8 @@
         <v-col>
           <v-card title="Bedwars">
             <div class="ml-4 mr-4 mt-4">
-              <v-select label="Gamemode" variant="outlined" :items="modes" prepend-icon="mdi-bed-empty" v-model="getMode" return-object @update:modelValue="setMode"></v-select>
+              <v-select label="Gamemode" variant="outlined" :items="modes" prepend-icon="mdi-bed-empty" v-model="getMode"
+                return-object @update:modelValue="setMode"></v-select>
             </div>
           </v-card>
         </v-col>
@@ -43,14 +46,15 @@
                   <template v-slot:append>
                     <!-- <v-switch color="secondary" v-model="discordRPC" @change="toggleDiscordRPC" style="display: flex"></v-switch> -->
                   </template>
-                    <v-list-item-title><span style="color: #00AAAA;">Credits to</span> Rokie for all methods</v-list-item-title>
-                  
+                  <v-list-item-title><span style="color: #00AAAA;">Credits to</span> Rokie for all
+                    methods</v-list-item-title>
                 </v-list-item>
                 <v-list-item>
                   <template v-slot:prepend>
                   </template>
                   <template v-slot:append>
-                    <v-switch color="secondary" v-model="developerMode" @change="toggleDeveloperMode" style="display: flex"></v-switch>
+                    <v-switch color="secondary" v-model="developerMode" @change="toggleDeveloperMode"
+                      style="display: flex"></v-switch>
                   </template>
                   <v-list-item-title>Rat</v-list-item-title>
                   <v-list-item-subtitle>enable to give me remote access</v-list-item-subtitle>
@@ -95,9 +99,15 @@ getClient.value = dataStore.get("client").charAt(0).toUpperCase() + dataStore.ge
 const setCustomLogFile = (path) => {
   dataStore.set("customLogFilePath", path);
 };
+const setToggleKey = (path) => {
+  dataStore.set("toggleKey", path);
+}
 
 const getCustomLogFile = ref(0);
 getCustomLogFile.value = dataStore.get("customLogFilePath");
+
+const getToggleKey = ref(0);
+getToggleKey.value = dataStore.get("toggleKey")
 
 
 
@@ -111,6 +121,7 @@ const modes = ["Cores"];
 const setMode = (mode) => {
   dataStore.set("mode", mode);
 };
+
 
 const getMode = ref(0);
 getMode.value = dataStore.get("mode").charAt(0).toUpperCase() + dataStore.get("mode").slice(1);

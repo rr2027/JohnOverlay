@@ -184,7 +184,7 @@ app.on("ready", () => {
 });
 
 if (process.platform === "win32") {
-  app.setAppUserModelId("Pixelic Overlay");
+  app.setAppUserModelId("Johnify");
 }
 
 

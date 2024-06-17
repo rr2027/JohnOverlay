@@ -212,6 +212,12 @@ function checkPartyTime(partyTime) {
 
   return partyTime;
 }
+/**
+ * parses party tags into colors
+ * 
+ * @param partyTime a string of party tags
+ * @returns string with a mc color code in front
+ */
 function partyParser(partyTime) {
   checkPartyTime(partyTime)
 
@@ -297,6 +303,13 @@ function partyParser(partyTime) {
   return "§4" + partyTime
 
 }
+
+/**
+ * parses gap tags into colors
+ * 
+ * @param gaps a string representing gaps in human time
+ * @returns gaps with mc color coding   
+ */
 function gapColorParser(gaps) {
   if (gaps.includes("y")) return "§4" + gaps
   if (gaps.includes("mo")) return "§4" + gaps
@@ -330,23 +343,28 @@ function encounterColorParser(encounters) {
 
 }
 
-// formats epoch into readable
-//
+
+/**
+ * Formats epoch milliseconds into human readable time ago
+ * eg.. 6y3mo
+ * @param epochTimestamp epoch in milliseconds
+ * 
+ * @returns string of time ago
+ */
 function formatTimeAgo(epochTimestamp) {
-  const now = Date.now(); // Current time in epoch milliseconds
-  let diff = now - epochTimestamp; // Difference in milliseconds
+  const now = Date.now(); 
+  let diff = now - epochTimestamp; 
 
   const msInSecond = 1000;
   const msInMinute = msInSecond * 60;
   const msInHour = msInMinute * 60;
   const msInDay = msInHour * 24;
-  const msInMonth = msInDay * 30; // Approximation
-  const msInYear = msInDay * 365; // Approximation
+  const msInMonth = msInDay * 30; 
+  const msInYear = msInDay * 365; 
 
   let formatted = "";
-  let unitsAdded = 0; // Keep track of how many units have been added to the formatted string
+  let unitsAdded = 0; 
 
-  // Calculate years
   if (diff >= msInYear && unitsAdded < 1) {
     const years = Math.floor(diff / msInYear);
     diff -= years * msInYear;
@@ -354,53 +372,48 @@ function formatTimeAgo(epochTimestamp) {
     unitsAdded++;
   }
 
-  // Calculate months
   if (diff >= msInMonth && unitsAdded < 1) {
     const months = Math.floor(diff / msInMonth);
     diff -= months * msInMonth;
-    if (formatted) formatted += ""; // Add a separator if there's already a unit
+    if (formatted) formatted += ""; 
     formatted += `${months}mo`;
     unitsAdded++;
   }
 
-  // Calculate days
   if (diff >= msInDay && unitsAdded < 1) {
     const days = Math.floor(diff / msInDay);
     diff -= days * msInDay;
-    if (formatted) formatted += ""; // Add a separator if there's already a unit
+    if (formatted) formatted += ""; 
     formatted += `${days}d`;
     unitsAdded++;
   }
 
-  // Calculate hours
   if (diff >= msInHour && unitsAdded < 1) {
     const hours = Math.floor(diff / msInHour);
     diff -= hours * msInHour;
-    if (formatted) formatted += ""; // Add a separator if there's already a unit
+    if (formatted) formatted += ""; 
     formatted += `${hours}h`;
     unitsAdded++;
   }
 
-  // Calculate minutes
+
   if (diff >= msInMinute && unitsAdded < 1) {
     const minutes = Math.floor(diff / msInMinute);
     diff -= minutes * msInMinute;
-    if (formatted) formatted += ""; // Add a separator if there's already a unit
+    if (formatted) formatted += ""; 
     formatted += `${minutes}m`;
     unitsAdded++;
   }
 
-  // Calculate seconds, only if no other larger unit has been calculated
   if (formatted === "" && diff >= msInSecond && unitsAdded < 1) {
     const seconds = Math.floor(diff / msInSecond);
-    if (formatted) formatted += ""; // Add a separator if there's already a unit
+    if (formatted) formatted += ""; 
     formatted += `${seconds}s`;
     unitsAdded++;
   }
 
   return formatted.trim();
 }
-
 
 const route = useRoute();
 
@@ -490,72 +503,7 @@ const forceAddPlayer = (player) => {
   }
 };
 
-// const reportPlayer = (UUID, reason) => {
-//   axios
-//     .post(
-//       "https://api.pixelic.de/hypixel/v1/overlay/reportsystem/report",
-//       {},
-//       {
-//         params: {
-//           UUID: UUID,
-//           expire: reason === "cheater" ? dataStore.get("blacklistCheaterExpiry") : dataStore.get("blacklistSniperExpiry"),
-//           reason: reason,
-//         },
-//         headers: {
-//           "X-API-Key": dataStore.get("pixelicKey"),
-//         },
-//         timeout: 10000,
-//       }
-//     )
-//     .then(() => {
-//       blacklistParser.add(UUID, reason);
 
-//       sendNotification({
-//         timeout: 5000,
-//         color: "success",
-//         icon: "mdi-database-plus-outline",
-//         text: "Your report was sucessful! The player was also added to your personal blacklist.",
-//       });
-//     })
-//     .catch((error) => {
-//       sendNotification({
-//         timeout: 5000,
-//         color: "error",
-//         icon: "mdi-alert-circle",
-//         text: "An error occured whilst submitting your report!",
-//       });
-//     });
-// };
-
-/* const revokePlayerReport = (UUID) => {
-  axios
-    .delete("https://api.pixelic.de/hypixel/v1/overlay/reportsystem/report", {
-      params: {
-        UUID: UUID,
-      },
-      headers: {
-        "X-API-Key": dataStore.get("pixelicKey"),
-      },
-      timeout: 10000,
-    })
-    .then(() => {
-      blacklistParser.remove(UUID);
-      sendNotification({
-        timeout: 5000,
-        color: "success",
-        icon: "mdi-database-minus-outline",
-        text: "Your report was revoked sucessfully! The player was also removed to your personal blacklist.",
-      });
-    })
-    .catch(() => {
-      sendNotification({
-        timeout: 5000,
-        color: "error",
-        icon: "mdi-alert-circle",
-        text: "An error occured whilst revoking your report!",
-      });
-    });
-}; */
 
 const viewStatistics = (player) => {
   excludedPlayers.push(player); // Add the 'player' parameter to the 'excludedPlayers' array
@@ -595,113 +543,84 @@ setInterval(() => {
       }
     } else {
       var tags = [];
-      var party = []
       const johns = [];
-      var icon = []
-      var blacklisted = false;
 
       let isSafelisted = false
-
-
       let isFriend = false;
-      let friendTagName = '';
 
       for (const [friendName, friendData] of Object.entries(playerFriendsDictionaries)) {
-        // Check if the current player's username is in the friend's friends list
         if (friendData.friends.includes(Player.username)) {
           isFriend = true;
           friendTagName = friendName;
 
-          // If the current player doesn't have an entry in the dictionary, create one
           if (!playerFriendsDictionaries[Player.username]) {
             playerFriendsDictionaries[Player.username] = {
               ign: Player.username,
-              friends: [friendName] // Add the friend's name as the first entry in the friends array
+              friends: [friendName] 
             };
           } else {
-            // If the player already has an entry but the current friend isn't listed, add the friend
             if (!playerFriendsDictionaries[Player.username].friends.includes(friendName)) {
               playerFriendsDictionaries[Player.username].friends.push(friendName);
             }
           }
 
-          break; // Exit the loop if a friend is found
+          break; 
         }
       }
       let sharedQuestTimesCount = 0;
-      let sharedQuestTimePlayerName = "";
       let hasSharedQuestTime = false;
-      let firstSharedQuestTime = null; // Initialize as null to indicate no time found yet
-
-      // Get the current player's quest completion times from the dictionary
+      let firstSharedQuestTime = null; 
       const currentPlayerTimes = questCompletionTimes[Player.username.toLowerCase()]?.times || [];
-
       for (const [playerName, playerData] of Object.entries(questCompletionTimes)) {
-        // Skip the iteration if the playerName is the same as the current player's username
         if (playerName.toLowerCase() === Player.username.toLowerCase()) {
           continue;
         }
-
-        // Accumulate all times in playerData.times that are also in currentPlayerTimes
         const sharedTimes = playerData.times.filter(time =>
           currentPlayerTimes.includes(time));
 
-        // If there are shared times, update the count and note the player name
         if (sharedTimes.length > 0) {
           hasSharedQuestTime = true;
           sharedQuestTimesCount += sharedTimes.length;
-          sharedQuestTimePlayerName = playerName; // Note: This will only store the last player with shared times
+          sharedQuestTimePlayerName = playerName; 
 
           if (firstSharedQuestTime === null || sharedTimes[0] < firstSharedQuestTime) {
-            firstSharedQuestTime = sharedTimes[0]; // Update to the earliest shared quest completion time found
+            firstSharedQuestTime = sharedTimes[0]; 
           }
         }
       }
       let maxCloseTimestampsCount = 0;
       let maxCloseTimestampPlayerName = "";
       let hasCloseTimestamp = false;
-      let firstCloseTimestamp = null; // Initialize as null to indicate no time found yet
+      let firstCloseTimestamp = null; 
 
-      // Get the current player's timestamps from the playerChecksDictionary
       const currentPlayerTimestamps = playerChecksDictionary[Player.username]?.timestamps || [];
 
       for (const [playerName, playerData] of Object.entries(playerChecksDictionary)) {
-        // Skip the iteration if the playerName is the same as the current player's name
         if (playerName.toLowerCase() === Player.username.toLowerCase()) {
           continue;
         }
 
-        // Counter for close timestamps between the current player and this specific other player
         let currentCloseTimestampsCount = 0;
 
-        // Iterate over each timestamp of the current player
         for (const currentTimestamp of currentPlayerTimestamps) {
-          // Find any timestamp in playerData.timestamps that is within 5 seconds of the currentTimestamp
           const closeTimes = playerData.timestamps.filter(otherTimestamp =>
             Math.abs(otherTimestamp - currentTimestamp) <= 0);
-
-
-          // If there are close timestamps, update the count for this specific comparison
           if (closeTimes.length > 0) {
             hasCloseTimestamp = true;
             currentCloseTimestampsCount += closeTimes.length;
             maxCloseTimestampPlayerName = playerName
-            // Update to the earliest close timestamp found
             const earliestCloseTime = Math.min(...closeTimes.map(time => time * 1000)); // Convert to milliseconds
             if (firstCloseTimestamp === null || earliestCloseTime < firstCloseTimestamp) {
               firstCloseTimestamp = earliestCloseTime;
             }
           }
         }
-
-        // Update max if the current count is higher than the previous max
         if (currentCloseTimestampsCount > maxCloseTimestampsCount) {
           maxCloseTimestampsCount = currentCloseTimestampsCount;
           maxCloseTimestampPlayerName = playerName;
         }
       }
 
-      // After the loop, maxCloseTimestampsCount and maxCloseTimestampPlayerName will hold the max count and corresponding player name
       let safelistTime = 0
       for (const [username] of Object.entries(safelistJson)) {
         if (username.toLowerCase() == Player.username.toLowerCase()) {
@@ -714,7 +633,6 @@ setInterval(() => {
 
       }
       let sharedGameDatesCount = 0;
-      let sharedGameDatePlayerName = "";
       let hasSharedGameDate = false
       let firstSharedGameDate = null; // Initialize as null to indicate no date found yet
 
@@ -745,17 +663,6 @@ setInterval(() => {
           }
         }
       }
-
-
-
-
-
-
-
-
-
-
-
 
       let isGuilded = false;
       let guildedMemberName = "";
@@ -924,6 +831,7 @@ setInterval(() => {
 
       let playerGaptooltip = gapEntries[Player.username] ? gapEntries[Player.username][0]['tooltip'] || '' : '';
 
+
       let playerPing = msEntries[Player.username] ? msEntries[Player.username][0]['text'] || 'ND' : 'ND';
       if (playerPing !== 'ND') {
         playerPing = playerPing.replace('ms', '').trim();
@@ -1026,8 +934,35 @@ setInterval(() => {
           }
         }
       }
+      const parseFormattedTime = (formattedTime) => {
+        const now = Date.now();
+        let totalMilliseconds = 0;
+
+        const timeUnits = {
+          'y': 365 * 24 * 60 * 60 * 1000,  // years to milliseconds
+          'mo': 30 * 24 * 60 * 60 * 1000,  // months to milliseconds
+          'd': 24 * 60 * 60 * 1000,        // days to milliseconds
+          'h': 60 * 60 * 1000,             // hours to milliseconds
+          'm': 60 * 1000,                  // minutes to milliseconds
+          's': 1000                       // seconds to milliseconds
+        };
+
+        const regex = /(\d+)(y|mo|d|h|m|s)/g;
+        let match;
+
+        while ((match = regex.exec(formattedTime)) !== null) {
+          const value = parseInt(match[1], 10);
+          const unit = match[2];
+          totalMilliseconds += value * timeUnits[unit];
+        }
+
+        return now - totalMilliseconds;
+      };
+      let formattedGaptooltip = parseFormattedTime(playerGaptooltip)
+
+
      let shopChange = false;
-      let changedTime = 0;
+     let changedTime = 0;
 
       // Process shop changes for the current player
       if (playerChecksDictionary.hasOwnProperty(Player.username)) {
@@ -1044,7 +979,6 @@ setInterval(() => {
               shopChange = true;
               if (oldTime === null || timestamp > oldTime) {
                 oldTime = timestamp;
-                // console.log(`    Shop changed to ${shop} at ${timestamp}`);
               }
             }
 
@@ -1062,14 +996,6 @@ setInterval(() => {
           console.error(`playerData is not an array for player ${Player.username}:`, playerDataArray);
         }
       }
-
-
-
-
-
-
-
-
 
       let Queued = false;
       let queuedmember = '';
@@ -1098,18 +1024,6 @@ setInterval(() => {
                 queueCount = count;
               }
 
-              // axios.get(`https://api.mojang.com/user/profile/${playerName}`)
-              //   .then(response => {
-              //     // Handle the API response here
-              //     const playerInfo = response.data; 
-              //     q = {
-              //       name: playerInfo.name
-              //     };
-              //   })
-              //   .catch(error => {
-              //     // Handle errors here
-              //     console.error(error);
-              //   });
             }
           }
         }
@@ -1120,8 +1034,8 @@ setInterval(() => {
       if (isSafelisted) {
         johns.push({ text: `§dSafe ${formatTimeAgo(safelistTime)}`, tooltip: ``, color: "#55FF55" })
       }
-      if (shopChange && changedTime != 0){
-        johns.push({ text: `§d${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
+      if (shopChange && (changedTime*1000) > formattedGaptooltip){
+        johns.push({ text: `§4${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
       }
       if (isPartied && partyval != 'ND') {
         johns.push({ text: `${partyParser(partyval)}`, tooltip: 'pug', color: '#FF5733' })
@@ -1164,14 +1078,14 @@ setInterval(() => {
         });
       }
       if (isCheater) {
-        johns.push({ text: '§cS', tooltip: 'cheater', color: '#FF5733' })
+        johns.push({ text: '§4S', tooltip: 'cheater', color: '#FF5733' })
       }
       if (isSniper) {
-        johns.push({ text: '§cS', tooltip: 'sniper', color: '#FF5733' })
+        johns.push({ text: '§4S', tooltip: 'sniper', color: '#FF5733' })
 
       }
       else if (pingAvgTotal[Player.username] && Math.abs(Player.ping - pingAvgTotal[Player.username]) > 40) {
-        johns.push({ text: "§cS", tooltip: `${Math.abs(Player.ping - pingAvgTotal[Player.username])}`, color: "#AA0000" });
+        johns.push({ text: "§4S", tooltip: `${Math.abs(Player.ping - pingAvgTotal[Player.username])}`, color: "#AA0000" });
       }
 
       else if (pingDays[Player.username] < 3) {

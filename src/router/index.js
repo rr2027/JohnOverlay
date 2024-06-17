@@ -4,10 +4,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: "/statistics",
-      component: () => import("../views/Statistics.vue"),
-    },
-    {
       path: "/basic-settings",
       component: () => import("../views/Settings/Basic.vue"),
     },

@@ -9,7 +9,7 @@
     "build": "electron-builder"
   },
   "build": {
-    "productName": "Pixelic Overlay",
+    "productName": "Johnify",
     "appId": "pixelic.overlay",
     "artifactName": "Pixelic-Overlay-Setup-v${buildVersion}-${arch}.${ext}",
     "directories": {

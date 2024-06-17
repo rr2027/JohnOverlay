@@ -9,7 +9,6 @@ import { useIpcRenderer } from "@vueuse/electron";
 
 export const excludedPlayersString = dataStore.get('excludedPlayers');
 export const excludedPlayers = excludedPlayersString.split(',').map(player => player.trim());
-const { app, globalShortcut } = require('electron');
 const fs = require('fs/promises');
 
 // const path = '/Users/diamond/Documents/GitHub/John/src/safelist.json';  // Path to your JSON file
@@ -140,7 +139,6 @@ async function getPugData(uuid, playerName) {
       return acc;
     }, {});
 
-    // Append or update playerDataDictionary
     playerDataDictionary[playerName] = {
       ...(playerDataDictionary[playerName] || {}),
       ...tagsDictionary
@@ -385,7 +383,7 @@ async function createLegacyQueuesDictionary(uuid, playerName) {
         ign,  // equivalent to ign: ign
         tablistUuids  // equivalent to tablistUuids: tablistUuids
       };
-      // console.log("Legacy Queue Dictionary", legacyQueuesDictionaries)
+      console.log("Legacy Queue Dictionary", legacyQueuesDictionaries)
 
       return tablistUuids;
     } else {
