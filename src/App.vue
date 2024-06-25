@@ -960,6 +960,21 @@ setInterval(() => {
           isCheater = true;
         }
       }
+      let blacklistedR
+      let isRisky = ''
+      if (playerDataDictionary[Player.username] && playerDataDictionary[Player.username][0] && playerDataDictionary[Player.username][0]['tooltip']) {
+        let tooltip = playerDataDictionary[Player.username][0]['tooltip'];
+        if (tooltip.includes('Cheater')) {
+          blacklistedR= tooltip;
+          isRisky = true;
+          }
+        }
+
+
+
+
+
+
 
 
 
