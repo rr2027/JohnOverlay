@@ -809,11 +809,11 @@ const addPlayer = async (player, options) => {
                 Player.ping = pinger.ping;
               }
             });
-            // getPugData(Player.UUID, player).then((data) => {
-            //   if (data) {
-            //     Player.pugData = data[player];
-            //   }
-            // });
+            getPugData(Player.UUID, player).then((data) => {
+              if (data) {
+                Player.pugData = data[player];
+              }
+            });
             createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g, "")).then((data) => {
               if(data) {
                 Player.friendedData = data[player];
