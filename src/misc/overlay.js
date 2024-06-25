@@ -1,36 +1,29 @@
-import axios from "axios";
+import axios, { all } from "axios";
 import axiosRetry from "axios-retry";
 const fetch = require('node-fetch');
-
 const { GlobalKeyboardListener } = require('node-global-key-listener');
-
 import { useIpcRenderer } from "@vueuse/electron";
-// import { ref, onMounted } from 'vue';
-
 export const excludedPlayersString = dataStore.get('excludedPlayers');
 export const excludedPlayers = excludedPlayersString.split(',').map(player => player.trim());
 const fs = require('fs/promises');
-
-// const path = '/Users/diamond/Documents/GitHub/John/src/safelist.json';  // Path to your JSON file
 const toggleKey = dataStore.get("toggleKey");
 
-console.log(toggleKey)
-export let playerGuildDictionary = {}
-export let persistentPlayerEncounters = {};
+var players = [];
 var who = [];
-
-
-var cachedPlayers = {};
-var johnPlayers = {}
-export let safelistedPlayers = [];
-// export let playerFriendsDictionaries = {}; //
-export let playerRecentgamesDictionaries = {};
 var playersInQueue = [];
 var playersInParty = [];
+export let safelistedPlayers = [];
+var cachedPlayers = {};
+var johnPlayers = {}
+export let playerRecentgamesDictionaries = {};
 export let queueDictionaries = {};
 export let playerProfileDictionaries = {}
 export let legacyQueuesDictionaries = {}
 export let playerFriendsDictionaries = {};
+export let playerNCDictionary = {};
+
+export let playerGuildDictionary = {}
+export let persistentPlayerEncounters = {};
 export let playerLanguages = {};
 export let questCompletionTimes = {};
 export let playerChecksDictionary = {};
@@ -40,13 +33,10 @@ export let playerBridgingTimes = {}
 export let playerActiveChallenges = {}
 export let safelistJson = {}
 export let playerDataDictionary = {}
+export let ipDictionary = {}
+
 var windowIsHidden = false
 
-
-// import safelistData from '/Users/diamond/Documents/GitHub/John/src/safelist.json';
-
-// safelistJson = safelistData
-// console.log(safelistData)
 const APIKEY = "084ec062-a4da-4ec2-90da-5e1c8545a2f8"
 
 
@@ -70,43 +60,7 @@ listener.addListener((e) => {
 
 
 
-function formatTimeDifference(seconds) {
-  const yearInSeconds = 31536000;
-  const monthInSeconds = 2592000;
-  const dayInSeconds = 86400;
-  const hourInSeconds = 3600;
 
-  let result = "";
-  let unitCount = 0;
-
-  const years = Math.floor(seconds / yearInSeconds);
-  if (years > 0 && unitCount < 2) {
-    result += `${years}y`;
-    seconds %= yearInSeconds;
-    unitCount++;
-  }
-
-  const months = Math.floor(seconds / monthInSeconds);
-  if (months > 0 && unitCount < 2) {
-    result += `${months}mo`;
-    seconds %= monthInSeconds;
-    unitCount++;
-  }
-
-  const days = Math.floor(seconds / dayInSeconds);
-  if (days > 0 && unitCount < 2) {
-    result += `${days}d`;
-    seconds %= dayInSeconds;
-    unitCount++;
-  }
-
-  const hours = Math.floor(seconds / hourInSeconds);
-  if (hours > 0 && unitCount < 2) {
-    result += `${hours}h`;
-  }
-
-  return result;
-}
 
 import dataStore from "../data/dataStore";
 import { sendNotification } from "./snackbarNotification";
@@ -127,7 +81,6 @@ async function getPugData(uuid, playerName) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log(data)
     const tagsDictionary = data.tags.reduce((acc, tag, index) => {
       acc[index] = {
         text: tag.text || '',
@@ -143,7 +96,7 @@ async function getPugData(uuid, playerName) {
       ...(playerDataDictionary[playerName] || {}),
       ...tagsDictionary
     };
-    // console.log('playerDataDictionary:', playerDataDictionary);
+    console.log('playerDataDictionary:', playerDataDictionary);
     return playerDataDictionary;
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -152,7 +105,35 @@ async function getPugData(uuid, playerName) {
 }
 
 
-var players = [];
+
+async function getPlayerIps(uuid) {
+  const apiUrl = "https://api.serverseeker.net/whereis";
+  const apiKey = "9raS6vz3Cm8EDaVgyMiiYrphs0dUx0sj";  // Replace with your actual API key
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({ uuid: uuid })
+  });
+
+  if (!response.ok) {
+    const errorMessage = await response.text();  // Read the response body for error details
+    throw new Error('Network response was not ok: ' + errorMessage);
+  }
+
+  const responseData = await response.json();
+  console.log('API Response:', responseData); // Log the API response
+  return responseData.data; // Return the nested data array
+}
+
+
+// Example usage:
+
+
+
 async function getPlayerQueueData(playerName) {
   const apiUrl = `https://api.antisniper.net/v2/player/queues?key=${APIKEY}&player=${playerName}`;
 
@@ -327,7 +308,6 @@ async function createPlayerChecksDictionary(playerName) {
         playerName, // equivalent to playerName: playerName
         data
       };
-      console.log("Player Checks Dictionary", playerChecksDictionary);
 
       return timestamps; // Returning timestamps if needed elsewhere
     } else {
@@ -355,7 +335,6 @@ async function createPlayerChecksDictionary(playerName) {
 async function createLegacyQueuesDictionary(uuid, playerName) {
   const apiUrl = `https://api.antisniper.net/v2/player/queues/legacy?key=${APIKEY}&player=${uuid}`;
 
-
   try {
     const response = await fetch(apiUrl);
     if (!response.ok) {
@@ -365,7 +344,8 @@ async function createLegacyQueuesDictionary(uuid, playerName) {
     const data = await response.json();
 
     if (data.success) {
-      const tablistUuids = [];
+      const tablistEntries = [];
+      // console.log(data);
 
       for (const entry of data.data) {
         for (const playerName in entry.tablist) {
@@ -373,19 +353,21 @@ async function createLegacyQueuesDictionary(uuid, playerName) {
             const tablistEntry = entry.tablist[playerName];
             if (typeof tablistEntry === 'string') {
               const uuid = tablistEntry.replace(/[^a-f0-9]/ig, '');
-              tablistUuids.push(uuid);
+              const timestamp = entry.current_time; // Get the current_time from the entry
+              tablistEntries.push({ uuid, timestamp });
             }
           }
         }
       }
-      const ign = playerName
+
+      const ign = playerName;
       legacyQueuesDictionaries[playerName] = {
         ign,  // equivalent to ign: ign
-        tablistUuids  // equivalent to tablistUuids: tablistUuids
+        tablistEntries  // Array of objects with uuid and timestamp
       };
-      console.log("Legacy Queue Dictionary", legacyQueuesDictionaries)
+      // console.log("Legacy Queue Dictionary", legacyQueuesDictionaries);
 
-      return tablistUuids;
+      return tablistEntries;
     } else {
       throw new Error(`API request was not successful: ${JSON.stringify(data)}`);
     }
@@ -394,6 +376,7 @@ async function createLegacyQueuesDictionary(uuid, playerName) {
     return [];
   }
 }
+
 
 async function updatePlayerLanguage(uuid, playerName) {
   const apiUrl = `https://api.hypixel.net/player?key=fd1101bd-7e5c-4057-8985-0316fd5b8237&uuid=${uuid}`;
@@ -464,7 +447,7 @@ async function updatePlayerFriends(playerName) {
       const friendsData = data.following.map(entry => entry.name);
 
       // Update the global dictionary with the player's name, IGN, and their friends
-      playerFriendsDictionaries[playerName] = {
+      playerNCDictionary[playerName] = {
         ign: playerName,
         friends: friendsData
       };
@@ -477,11 +460,59 @@ async function updatePlayerFriends(playerName) {
     console.error(`Error fetching 'following' players for ${playerName}: ${error.message}`);
   }
 }
+async function fetchFriends(uuid) {
+  const apiUrl = `http://johnify.xyz/friends?uuid=${uuid}&key=John`;
+  try {
+    const headers = {
+      'User-Agent': 'Apple Gecko', // Set your custom User-Agent header here
+    };
+    const response = await fetch(apiUrl, { headers });
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error fetching friends for ${playerName}: ${error.message}`);
+    return { friends: [] }; // Return an empty array on error
+  }
+}
+async function createPlayerFriendsDictionary(playerName, uuid) {
+  try {
+    const friendsData = await fetchFriends(uuid);
+
+    if (friendsData && friendsData.success === false) {
+      // Handle the case where fetching friends was not successful
+    } else {
+      // Transform the friends array to an object
+      const transformedFriends = friendsData.friends.reduce((acc, friend) => {
+        acc[friend.friend_uuid] = { time: friend.friend_time };
+        return acc;
+      }, {});
+
+      // Update the global dictionary for this specific player
+      playerFriendsDictionaries[playerName] = {
+        ign: playerName,
+        friends: transformedFriends
+      };
+      console.log(playerFriendsDictionaries);
+    }
+
+  } catch (error) {
+    console.error(`Error fetching friends for ${playerName}:`, error.message);
+    // In case of an error, ensure an empty structure for consistency
+    playerFriendsDictionaries[playerName] = {
+      ign: playerName,
+      friends: {}
+    };
+  }
+}
+
 
 
 async function fetchRecentGames(uuid, playerName) {
   let normalizedPlayerUUID = uuid.replace(/-/g, '');
-  const apiUrl = `http://127.0.0.1:8000/recentgames?api_key=John&uuid=${normalizedPlayerUUID}`;
+  const apiUrl = `http://johnify.xyz/recentgames?key=John&uuid=${normalizedPlayerUUID}}`;
   try {
     const headers = {
       'User-Agent': 'Apple Gecko',
@@ -504,15 +535,13 @@ async function createRecentGamesDictionary(uuid, playerName) {
     if (recentGamesData && recentGamesData.success === false) {
       console.log("API request unsuccessful");
     } else {
-      // Extracting only the dates from the recentGames array
       const dates = recentGamesData.recentGames.map(game => game.date);
 
-      // Storing the dates in the dictionary
       playerRecentgamesDictionaries[playerName] = {
         ign: playerName,
         recentGamesDates: dates // Only storing the dates
       };
-      // console.log(playerRecentgamesDictionaries);
+      console.log(playerRecentgamesDictionaries);
     }
 
   } catch (error) {
@@ -599,12 +628,19 @@ const getPingData = async (user) => {
 
         const daysCount = uniqueDays.size;
 
-        const allPings = body.data.map((pingRecord) => pingRecord.avg);
-        const mostRecentPing = allPings.pop();
-        const averagePing = allPings.reduce((sum, ping) => sum + ping, 0) / (daysCount - 1);
+        // Filter out pings over 500 ms
+        const filteredPings = body.data.map((pingRecord) => pingRecord.avg).filter(ping => ping <= 500);
+
+        if (filteredPings.length === 0) {
+          resolve({ exists: false, username: user, message: 'All pings are over 500 ms' });
+          return;
+        }
+
+        const mostRecentPing = filteredPings.pop();
+        const averagePing = filteredPings.reduce((sum, ping) => sum + ping, 0) / filteredPings.length;
+
 
         pingDays[user] = daysCount || 0;
-        // console.log(pingDays)
         pingAvgTotal[user] = averagePing.toFixed(0);
 
         resolve({
@@ -686,6 +722,7 @@ const addPlayer = async (player, options) => {
     // await fetchData(player)
     // await updatePlayerFriends(player)
     // await createPlayerChecksDictionary(player)
+    // await createPlayerFriendsDictionary(player, Player.UUID)
     // console.log("Using cached player data for " + player);
 
     var Player = cachedPlayers[player];
@@ -702,6 +739,7 @@ const addPlayer = async (player, options) => {
     // console.log(Player);
   } else {
     // console.log("Fetching player data for " + player);
+
 
     // await fetchData(player)
     // await updatePlayerFriends(player)
@@ -725,6 +763,7 @@ const addPlayer = async (player, options) => {
 
             var Player = { success: true, username: data.data.ign || 0, UUID: data.data.uuid || 0, dasheduuid: data.data._id, rank: data.data.general_stats.rank || null, level: data.data.general_stats.bedwars_star || 0, plusColor: data.data.general_stats.rankPlusColor || 0, plusPlusColor: data.data.general_stats.monthlyRankColor || 0, ...data.data.overall || 0 };
             // await getPlayerQueueData(Player.UUID);
+            // await createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g,""))
 
 
             // await createPlayerProfileDictionary(Player.UUID, player);
@@ -768,60 +807,71 @@ const addPlayer = async (player, options) => {
             getPingData(player).then((pinger) => {
               if (typeof pinger === 'object' && pinger.hasOwnProperty('ping')) {
                 Player.ping = pinger.ping;
-                console.log(Player.ping);
               }
             });
-            getPugData(Player.UUID, player).then((data) => {
+            // getPugData(Player.UUID, player).then((data) => {
+            //   if (data) {
+            //     Player.pugData = data[player];
+            //   }
+            // });
+            createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g, "")).then((data) => {
+              if(data) {
+                Player.friendedData = data[player];
+              }
+            });
+            createRecentGamesDictionary(Player.UUID, player).then((data) => {
               if (data) {
-                Player.pugData = data[player];
+                Player.recentGamesData = data[player];
               }
             })
+
+            getPlayerIps(Player.UUID)
+              .then((data) => {
+                if (data && Array.isArray(data)) {
+                  ipDictionary[player] = data.map(item => ({
+                    last_seen: item.last_seen,
+                    server: item.server,
+                    time: item.last_seen
+                  }));
+                }
+                console.log('ipDictionary:', ipDictionary);  
+              })
+              .catch(error => console.error('Error fetching player IPs:', error));
             createPlayerChecksDictionary(player).then((data) => {
               if (data) {
                 Player.checkData = data[player]
               }
-            })
+            });
 
             getPlayerQueueData(player).then((data) => {
               if (data) {
                 Player.queueData = data[player]
               }
-            })
+            });
             updatePlayerFriends(player).then((data) => {
               if (data) {
                 Player.playerFriends = data[player]
               }
-            })
+            });
             createLegacyQueuesDictionary(Player.UUID, player).then((data) => {
               if (data) {
                 Player.LegacyQueues = data[player]
               }
-            })
+            });
             updatePlayerLanguage(Player.UUID, player).then((data) => {
               if (data) {
                 Player.Languages = data[player]
               }
-            })
+            });
             createPlayerProfileDictionary(Player.UUID, player).then((data) => {
               if (data) {
                 Player.ProfileDictionary = data[player]
               }
-            })
+            });
 
 
 
-            // findLongestGap(player).then((gapper) => {
-            //   if (typeof gapper === 'object' && gapper.hasOwnProperty('gap')) {
-            //     Player.gaps = formatTimeDifference(gapper.gap) || "";
-            //     Player.johnGap = gapper.gap
-            //     Player.longestGapStart = gapper.longestGapStart
-            //     Player.longestGapEnd = gapper.longestGapEnd
-            //     // console.log(Player.gaps)
-            //     // console.log(Player.longestGapStart)
-            //     // console.log(Player.longestGapEnd)
-
-            //   }
-            // });
+    
           }
         })
         .catch((error) => {

@@ -154,7 +154,9 @@
 
 <script setup>
 import { useIpcRenderer } from "@vueuse/electron";
-import { playerFriendsDictionaries, queueDictionaries, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges } from "./misc/overlay";
+import { defineComponent } from 'vue';
+
+import { playerNCDictionary,playerFriendsDictionaries, queueDictionaries, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges, ipDictionary } from "./misc/overlay";
 import { persistentPlayerEncounters } from "./misc/overlay"; // Import the whole object
 import { pingAvgTotal } from "./misc/overlay"; // Import the whole objectim
 import { playerGuildDictionary } from "./misc/overlay";
@@ -182,6 +184,7 @@ import axios from "axios";
 import PackageJSON from "../package.json";
 import { useRoute } from "vue-router";
 import { toHandlers } from "vue";
+
 
 
 function pingColorParser(ping) {
@@ -365,14 +368,14 @@ function formatTimeAgo(epochTimestamp) {
   let formatted = "";
   let unitsAdded = 0; 
 
-  if (diff >= msInYear && unitsAdded < 1) {
+  if (diff >= msInYear && unitsAdded < 2) {
     const years = Math.floor(diff / msInYear);
     diff -= years * msInYear;
     formatted += `${years}y`;
     unitsAdded++;
   }
 
-  if (diff >= msInMonth && unitsAdded < 1) {
+  if (diff >= msInMonth && unitsAdded < 2) {
     const months = Math.floor(diff / msInMonth);
     diff -= months * msInMonth;
     if (formatted) formatted += ""; 
@@ -380,7 +383,7 @@ function formatTimeAgo(epochTimestamp) {
     unitsAdded++;
   }
 
-  if (diff >= msInDay && unitsAdded < 1) {
+  if (diff >= msInDay && unitsAdded < 2) {
     const days = Math.floor(diff / msInDay);
     diff -= days * msInDay;
     if (formatted) formatted += ""; 
@@ -388,7 +391,7 @@ function formatTimeAgo(epochTimestamp) {
     unitsAdded++;
   }
 
-  if (diff >= msInHour && unitsAdded < 1) {
+  if (diff >= msInHour && unitsAdded < 2) {
     const hours = Math.floor(diff / msInHour);
     diff -= hours * msInHour;
     if (formatted) formatted += ""; 
@@ -397,7 +400,7 @@ function formatTimeAgo(epochTimestamp) {
   }
 
 
-  if (diff >= msInMinute && unitsAdded < 1) {
+  if (diff >= msInMinute && unitsAdded < 2) {
     const minutes = Math.floor(diff / msInMinute);
     diff -= minutes * msInMinute;
     if (formatted) formatted += ""; 
@@ -405,7 +408,7 @@ function formatTimeAgo(epochTimestamp) {
     unitsAdded++;
   }
 
-  if (formatted === "" && diff >= msInSecond && unitsAdded < 1) {
+  if (formatted === "" && diff >= msInSecond && unitsAdded < 2) {
     const seconds = Math.floor(diff / msInSecond);
     if (formatted) formatted += ""; 
     formatted += `${seconds}s`;
@@ -547,29 +550,117 @@ setInterval(() => {
 
       let isSafelisted = false
       let isFriend = false;
+      let friendTagName = ''
 
-      for (const [friendName, friendData] of Object.entries(playerFriendsDictionaries)) {
+      for (const [friendName, friendData] of Object.entries(playerNCDictionary)) {
         if (friendData.friends.includes(Player.username)) {
           isFriend = true;
           friendTagName = friendName;
 
-          if (!playerFriendsDictionaries[Player.username]) {
-            playerFriendsDictionaries[Player.username] = {
+          if (!playerNCDictionary[Player.username]) {
+            playerNCDictionary[Player.username] = {
               ign: Player.username,
               friends: [friendName] 
             };
           } else {
-            if (!playerFriendsDictionaries[Player.username].friends.includes(friendName)) {
-              playerFriendsDictionaries[Player.username].friends.push(friendName);
+            if (!playerNCDictionary[Player.username].friends.includes(friendName)) {
+              playerNCDictionary[Player.username].friends.push(friendName);
             }
           }
 
           break; 
         }
       }
+      let isMatchingServer = false;
+      let matchingServerDetails = {};
+
+      let isMatchingServerMember = ""
+      let isMatchingServerIP = ""
+
+      let isMatchingServerTime = 0
+
+      for (const [playerName, playerData] of Object.entries(ipDictionary)) {
+        if (!Array.isArray(playerData) || playerData.length === 0 || playerName != Player.username) {
+          continue;  // Skip if playerData is not an array or is empty
+        }
+
+        for (const { server, last_seen } of playerData) {
+          const [serverIp] = server.split(':');
+
+          for (const [otherPlayerName, otherPlayerData] of Object.entries(ipDictionary)) {
+            if (playerName === otherPlayerName) continue;
+
+            if (!Array.isArray(otherPlayerData) || otherPlayerData.length === 0) {
+              continue;  // Skip if otherPlayerData is not an array or is empty
+            }
+
+            for (const { server: otherServer, last_seen: other_last_seen } of otherPlayerData) {
+              const [otherServerIp] = otherServer.split(':');
+              if (serverIp === otherServerIp) {
+                isMatchingServer = true;
+                isMatchingServerMember = otherPlayerName 
+                isMatchingServerIP = serverIp
+                isMatchingServerTime = last_seen
+                matchingServerDetails = {
+                  player1: playerName,
+                  player2: otherPlayerName,
+                  server: serverIp
+                };
+                break;
+              }
+            }
+            if (isMatchingServer) break;
+          }
+          if (isMatchingServer) break;
+        }
+        if (isMatchingServer) break;
+      }
+
+      if (!isMatchingServer) {
+      }
+
+      let nondasheduuid = Player.UUID.replace(/-/g, "")
+      let isFriended = false;
+      let friendedTagName = ''; // Initialize the variable
+      let friendedTime = 0;
+
+      for (const [friendName, friendData] of Object.entries(playerFriendsDictionaries)) {
+        if (friendData.friends && Object.keys(friendData.friends).length > 0) {
+          const friendUUID = Object.keys(friendData.friends).find(uuid => {
+            return uuid === nondasheduuid;
+          });
+
+          if (friendUUID) {
+            const friend = friendData.friends[friendUUID];
+            isFriended = true;
+            friendedTagName = friendName; // Assign the correct variable name
+            friendedTime = friend.time; 
+
+
+            if (!playerFriendsDictionaries[Player.username]) {
+              playerFriendsDictionaries[Player.username] = {
+                ign: Player.username,
+                friends: { [friendName]: { time: friendedTime } }
+              };
+            } else {
+
+              if (!playerFriendsDictionaries[Player.username].friends[friendName]) {
+                playerFriendsDictionaries[Player.username].friends[friendName] = { friendedTime};
+              }
+            }
+            break; 
+          }
+        }
+      }
+
+
+
+      
+      
       let sharedQuestTimesCount = 0;
       let hasSharedQuestTime = false;
       let firstSharedQuestTime = null; 
+      let sharedQuestTimePlayerName = ''
       const currentPlayerTimes = questCompletionTimes[Player.username.toLowerCase()]?.times || [];
       for (const [playerName, playerData] of Object.entries(questCompletionTimes)) {
         if (playerName.toLowerCase() === Player.username.toLowerCase()) {
@@ -728,6 +819,7 @@ setInterval(() => {
 
         return results;
       }
+
       let changedName = false
       let nameVal = ''
       let nameEntries = findEntriesWithIcon(playerDataDictionary, 'mdi-tag') || []
@@ -744,6 +836,14 @@ setInterval(() => {
         partyval = partyEntries[Player.username] ? partyEntries[Player.username][0]['tooltip'] || 'ND' : 'ND'
       }
 
+      let isLunar = false
+      let cosmeticsnumber = ""
+
+      let lunarEntries = findEntriesWithIcon(playerDataDictionary, "mdi-weather-night") || []
+      if (lunarEntries[Player.username] != {}) {
+        isLunar = true
+        cosmeticsnumber = lunarEntries[Player.username] ? lunarEntries[Player.username][0]['tooltip'] || 'ND' : 'ND'
+      }
 
       function findEntriesWithTooltip(dictionary, searchText) {
         let results = {};
@@ -867,17 +967,14 @@ setInterval(() => {
 
 
 
-      let isMember = false;
+     let isMember = false;
       let memberOfPlayerName = '';
-      let firstJoinTimestamp = null
+      let firstJoinTimestamp = null;
+      let normalizedPlayerUUID = Player.UUID.replace(/-/g, '');
 
       if (Player.exists === false) {
         console.log("Player does not exist, skipping membership check.");
       } else {
-        let normalizedPlayerUUID = Player.UUID.replace(/-/g, '');
-
-        // Remove dashes from player's UUID
-
         for (const [playerName, playerInfo] of Object.entries(playerProfileDictionaries)) {
           // Skip if the player name is the same as the current player's name
           if (playerName.toLowerCase() === Player.username.toLowerCase()) {
@@ -885,12 +982,21 @@ setInterval(() => {
           }
 
           if (playerInfo.members && playerInfo.members[normalizedPlayerUUID] && playerInfo.members[normalizedPlayerUUID].first_join) {
-            firstJoinTimestamp = (playerInfo.members[normalizedPlayerUUID].first_join).toFixed(0);
+            let currentMemberFirstJoinTimestamp = parseInt(playerInfo.members[normalizedPlayerUUID].first_join, 10);
+            let currentFirstJoinTimestamp = parseInt(Player.first_join, 10);
+
             const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
 
-            if (Date.now() - firstJoinTimestamp > oneWeekInMilliseconds) {
+            if (Date.now() - currentMemberFirstJoinTimestamp > oneWeekInMilliseconds) {
               isMember = true;
-              memberOfPlayerName = playerName; // 
+              memberOfPlayerName = playerName;
+
+              // Set both timestamps to the lower (earlier) one
+              let earliestTimestamp = Math.min(currentFirstJoinTimestamp, currentMemberFirstJoinTimestamp);
+
+              // Update the timestamps
+              playerInfo.members[normalizedPlayerUUID].first_join = earliestTimestamp.toString();
+              Player.first_join = earliestTimestamp.toString();
 
               break;
             }
@@ -898,11 +1004,16 @@ setInterval(() => {
         }
       }
 
+      if (isMember) {
+      }
 
 
-      let legacyQueued = false;
+
+    let legacyQueued = false;
       let Lqueuedmember = '';
       let LqueueCount = 0;
+      let LqueueTimestamps = [];
+      let earliestTimestamp = 0
 
       if (Player.exists === false) {
         console.log("Skipping invalid player");
@@ -915,25 +1026,32 @@ setInterval(() => {
               continue;
             }
 
-            const uuids = legacyQueuesDictionaries[playerName].tablistUuids;
-            const count = uuids.filter(uuid => uuid === normalizedPlayerUUID).length;
+            const tablistEntries = legacyQueuesDictionaries[playerName].tablistEntries;
+            const matchingEntries = tablistEntries.filter(entry => entry.uuid === normalizedPlayerUUID);
 
-
-            if (count > 0) {
+            if (matchingEntries.length > 0) {
               legacyQueued = true;
-
               Lqueuedmember = playerName;
-              if (count > LqueueCount) {
-                LqueueCount = count;
-              }
-              legacyQueuesDictionaries[playerName].legacyQueued = true; // Mark the other player as queued
-              legacyQueued = true
-              legacyQueuesDictionaries[playerName].queueCount = LqueueCount; // Update their count if this is the max
 
+              if (matchingEntries.length > LqueueCount) {
+                LqueueCount = matchingEntries.length;
+                LqueueTimestamps = matchingEntries.map(entry => entry.timestamp);
+              }
+
+              // Mark the other player as queued
+              legacyQueuesDictionaries[playerName].legacyQueued = true;
+              legacyQueuesDictionaries[playerName].queueCount = LqueueCount;
+              legacyQueuesDictionaries[playerName].queueTimestamps = LqueueTimestamps;
             }
           }
         }
+
+        if (legacyQueued) {
+          earliestTimestamp = (Math.min(...LqueueTimestamps.map(timestamp => (timestamp))));
+        }
       }
+
+
       const parseFormattedTime = (formattedTime) => {
         const now = Date.now();
         let totalMilliseconds = 0;
@@ -1035,16 +1153,21 @@ setInterval(() => {
         johns.push({ text: `§dSafe ${formatTimeAgo(safelistTime)}`, tooltip: ``, color: "#55FF55" })
       }
       if (shopChange && (changedTime*1000) > formattedGaptooltip){
-        johns.push({ text: `§4${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
+        johns.push({ text: `§0${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
       }
-      if (isPartied && partyval != 'ND') {
+      if (isFriended) {
+        johns.push({ text: `§9${partyParser(formatTimeAgo(friendedTime))}`, tooltip: `F ${friendedTagName}`, color: "#5555FF" });
+      }
+      else if (isPartied && partyval != 'ND') {
         johns.push({ text: `${partyParser(partyval)}`, tooltip: 'pug', color: '#FF5733' })
+      }
+      else if(isMatchingServer) {
+        johns.push({ text: `§9server${formatTimeAgo(isMatchingServerTime * 1000)}`, tooltip: `${isMatchingServerIP}`, color: "#5555FF" });
+
       }
       else if (hasSharedGameDate) {
         johns.push({ text: `§d${formatTimeAgo(firstSharedGameDate)}`, tooltip: ``, color: "green-accent-3" })
       }
-
-
       else if (hasCloseTimestamp && maxCloseTimestampsCount >= 0 && firstCloseTimestamp < tenDayAgo) {
         johns.push({ text: `§6${formatTimeAgo(firstCloseTimestamp)}`, tooltip: `${maxCloseTimestampPlayerName} ${maxCloseTimestampsCount}`, color: "green-accent-3" })
 
@@ -1056,6 +1179,7 @@ setInterval(() => {
         johns.push({ text: "§9N", tooltip: `C`, color: "#5555FF" });
 
       }
+      
 
       else if (isMember) {
         johns.push({ text: `§d${partyParser(formatTimeAgo((firstJoinTimestamp)))}`, tooltip: `C ${memberOfPlayerName}`, color: "#55FF55" });
@@ -1065,7 +1189,7 @@ setInterval(() => {
       }
       else if (legacyQueued) {
         johns.push({
-          text: `§aL-${LqueueCount}`,
+          text: `${(partyParser(formatTimeAgo(earliestTimestamp)))}`,
           tooltip: `L ${Lqueuedmember}-${LqueueCount}`,
           color: "#55FF55"
         })
@@ -1084,13 +1208,15 @@ setInterval(() => {
         johns.push({ text: '§4S', tooltip: 'sniper', color: '#FF5733' })
 
       }
-      else if (pingAvgTotal[Player.username] && Math.abs(Player.ping - pingAvgTotal[Player.username]) > 40) {
-        johns.push({ text: "§4S", tooltip: `${Math.abs(Player.ping - pingAvgTotal[Player.username])}`, color: "#AA0000" });
-      }
+      
+      // else if (pingAvgTotal[Player.username] && Math.abs(Player.ping - pingAvgTotal[Player.username]) > 40) {
+      //   console.log(pingAvgTotal[Player.username])
+      //   johns.push({ text: "§4S", tooltip: `${Math.abs(Player.ping - pingAvgTotal[Player.username])}`, color: "#AA0000" });
+      // }
 
-      else if (pingDays[Player.username] < 3) {
-        tags.push({ text: "LD", tooltip: `LowData`, color: "#AA0000" });
-      }
+      // else if (pingDays[Player.username] < 3) {
+      //   tags.push({ text: "LD", tooltip: `LowData`, color: "#AA0000" });
+      // }
       if (changedName && nameVal != "ND") {
         johns.push({ text: '§cNC', tooltip: `${nameVal}`, color: '#FF5733' })
       }
@@ -1100,6 +1226,10 @@ setInterval(() => {
       if (highFkdr && fkdrVal != "ND") {
         johns.push({ text: '§cHM', tooltip: `${fkdrVal}`, color: '#FF5733' })
       }
+      if(isLunar == true && cosmeticsnumber != "ND") {
+        johns.push({text: "🌙", tooltip: `${cosmeticsnumber}`, color: '#FF5733'})
+      }
+
 
 
 

@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell, Notification, ipcRenderer} = require("electron");
 const log = require("electron-log");
-const { autoUpdater } = require("electron-updater");
+// const { autoUpdater } = require("electron-updater");
 const fs = require("fs");
 var windowIsHidden = false
 const path = require("path");
@@ -9,15 +9,15 @@ const Tail = require("tail").Tail;
 const url = require("url");
 //const discordRPC = require("./src/misc/discordRPC");
 
-autoUpdater.logger = log;
-autoUpdater.logger.transports.file.level = "info";
+// autoUpdater.logger = log;
+// autoUpdater.logger.transports.file.level = "info";
 
 Store.initRenderer();
 
 app.on("ready", () => {
   if (process.platform !== "darwin") {
-    autoUpdater.disableWebInstaller = true;
-    autoUpdater.checkForUpdatesAndNotify();
+    // autoUpdater.disableWebInstaller = true;
+    // autoUpdater.checkForUpdatesAndNotify();
   } else {
     // As MacOS requires code signing for auto update mac users are only notified about an update and are required to install it themselves.
     // const { isLatest } = require("./gitUpdate");
