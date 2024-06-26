@@ -156,7 +156,7 @@
 import { useIpcRenderer } from "@vueuse/electron";
 import { defineComponent } from 'vue';
 
-import { playerNCDictionary,playerFriendsDictionaries, queueDictionaries, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges, ipDictionary } from "./misc/overlay";
+import { playerNCDictionary,playerFriendsDictionaries, queueDictionaries, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges, ipDictionary, safelistedDict } from "./misc/overlay";
 import { persistentPlayerEncounters } from "./misc/overlay"; // Import the whole object
 import { pingAvgTotal } from "./misc/overlay"; // Import the whole objectim
 import { playerGuildDictionary } from "./misc/overlay";
@@ -552,6 +552,8 @@ setInterval(() => {
       let isFriend = false;
       let friendTagName = ''
 
+      
+
       for (const [friendName, friendData] of Object.entries(playerNCDictionary)) {
         if (friendData.friends.includes(Player.username)) {
           isFriend = true;
@@ -626,32 +628,31 @@ setInterval(() => {
 
       for (const [friendName, friendData] of Object.entries(playerFriendsDictionaries)) {
         if (friendData.friends && Object.keys(friendData.friends).length > 0) {
-          const friendUUID = Object.keys(friendData.friends).find(uuid => {
-            return uuid === nondasheduuid;
-          });
+          const friendUUID = Object.keys(friendData.friends).find(uuid => uuid === nondasheduuid);
 
           if (friendUUID) {
             const friend = friendData.friends[friendUUID];
             isFriended = true;
-            friendedTagName = friendName; // Assign the correct variable name
-            friendedTime = friend.time; 
+            friendedTagName = friendName; // The friend's name associated with the UUID
+            friendedTime = friend.time;
 
-
+            // Check if the player's friends list exists
             if (!playerFriendsDictionaries[Player.username]) {
               playerFriendsDictionaries[Player.username] = {
                 ign: Player.username,
-                friends: { [friendName]: { time: friendedTime } }
+                friends: { [friendUUID]: { name: friendedTagName, time: friendedTime } }
               };
             } else {
-
-              if (!playerFriendsDictionaries[Player.username].friends[friendName]) {
-                playerFriendsDictionaries[Player.username].friends[friendName] = { friendedTime};
+              // Check if the friend (by UUID) already exists in the player's friends list
+              if (!playerFriendsDictionaries[Player.username].friends[friendUUID]) {
+                playerFriendsDictionaries[Player.username].friends[friendUUID] = { name: friendedTagName, time: friendedTime };
               }
             }
-            break; 
+            break;
           }
         }
       }
+
 
 
 
@@ -712,16 +713,26 @@ setInterval(() => {
         }
       }
 
-      let safelistTime = 0
-      for (const [username] of Object.entries(safelistJson)) {
-        if (username.toLowerCase() == Player.username.toLowerCase()) {
+      // let safelistTime = 0
+      // for (const [username] of Object.entries(safelistJson)) {
+      //   if (username.toLowerCase() == Player.username.toLowerCase()) {
 
-          safelistTime = ((safelistJson[username]))
-          isSafelisted = true
-          continue
+      //     safelistTime = ((safelistJson[username]))
+      //     isSafelisted = true
+      //     continue
+      //   }
+
+
+      // }
+
+      let safe = false;
+      let safeTime = 0;
+
+      for (const username of Object.keys(safelistedDict)) {
+        if(username.toLowerCase() == Player.username.toLowerCase()) {
+          safe = true
+          safeTime = safelistedDict[username]
         }
-
-
       }
       let sharedGameDatesCount = 0;
       let hasSharedGameDate = false
@@ -951,6 +962,7 @@ setInterval(() => {
         }
       }
 
+
       let blacklistedC = '';
       let isCheater = false;
       if (playerDataDictionary[Player.username] && playerDataDictionary[Player.username][0] && playerDataDictionary[Player.username][0]['tooltip']) {
@@ -1164,8 +1176,12 @@ setInterval(() => {
 
 
       const tenDayAgo = Date.now() - (240 * 60 * 60 * 1000); // 24 hours, 60 minutes, 60 seconds, 1000 milliseconds
-      if (isSafelisted) {
-        johns.push({ text: `§dSafe ${formatTimeAgo(safelistTime)}`, tooltip: ``, color: "#55FF55" })
+      // if (isSafelisted) {
+      //   johns.push({ text: `§dSafe ${formatTimeAgo(safelistTime)}`, tooltip: ``, color: "#55FF55" })
+      // }
+      if(safe){
+        johns.push({ text: `§dSafe ${formatTimeAgo(safeTime[0].time)}`, tooltip: ``, color: "#55FF55" })
+
       }
       if (shopChange && (changedTime*1000) > formattedGaptooltip){
         johns.push({ text: `§0${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
@@ -1285,7 +1301,7 @@ setInterval(() => {
         UUID: Player.UUID,
         username: Player.username,
         fullUsername: isCheater ? mcColorParser(`§c${blacklistedC}`) : isSniper ? mcColorParser(`§c${blacklistedS}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[0]} ${Player.username}`),
-        formattedUsername: isCheater ? mcColorParser(`§c${Player.username}`) : isSniper ? mcColorParser(`§c${Player.username}`) : safelistedPlayers.includes(Player.username) ? mcColorParser(`§d${Player.username}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[1]} ${Player.username}`),
+        formattedUsername: safe ? mcColorParser(`§d${Player.username}`) : isCheater ? mcColorParser(`§c${Player.username}`) : isSniper ? mcColorParser(`§c${Player.username}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[1]} ${Player.username}`),
         level: Math.floor(Player.level),
         fullLevel: mcColorParser(starParser(Math.floor(Player.level))[0]) || 0,
         levelFormatted: mcColorParser(starParser(Math.floor(Player.level))[1]) || 0,

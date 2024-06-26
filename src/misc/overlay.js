@@ -17,6 +17,9 @@ var cachedPlayers = {};
 var johnPlayers = {}
 export let playerRecentgamesDictionaries = {};
 export let queueDictionaries = {};
+
+export let safelistedDict = {};
+let playeruuidDict = {};
 export let playerProfileDictionaries = {}
 export let legacyQueuesDictionaries = {}
 export let playerFriendsDictionaries = {};
@@ -68,6 +71,21 @@ import { sendNotification } from "./snackbarNotification";
 const ipcRenderer = useIpcRenderer();
 if (windowIsHidden) {
   ipcRenderer.send("windowEvent", "hide");
+}
+async function getPlayerSafelist(player, uuid) {
+  const apiUrl = `https://johnify.xyz/getsafelist?key=John&uuid=${uuid}`
+  try {
+    const response = await(fetch(apiUrl));
+    if(!response.ok){
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log(data)
+    safelistedDict[player] = data["data"]
+    console.log("safelist dictionary", safelistedDict)
+}catch (error) {
+  console.error('error with safelist', error);
+}
 }
 async function getPugData(uuid, playerName) {
   const apiUrl = `https://privatemethod.xyz/api/cubelify?key=0343cd01-3dc9-4aa4-97af-54c0d0bf6401&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
@@ -809,14 +827,22 @@ const addPlayer = async (player, options) => {
                 Player.ping = pinger.ping;
               }
             });
-            getPugData(Player.UUID, player).then((data) => {
-              if (data) {
-                Player.pugData = data[player];
-              }
-            });
-            createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g, "")).then((data) => {
+            playeruuidDict[player.toLowerCase()] = Player.UUID.replace(/-/g, "")
+            console.log(playeruuidDict)
+            // getPugData(Player.UUID, player).then((data) => {
+            //   if (data) {
+            //     Player.pugData = data[player];
+            //   }
+            // });
+
+            // createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g, "")).then((data) => {
+            //   if(data) {
+            //     Player.friendedData = data[player];
+            //   }
+            // });
+            getPlayerSafelist(player, Player.UUID.replace(/-/g,"")).then((data) => {
               if(data) {
-                Player.friendedData = data[player];
+                Player.safelist = data[player];
               }
             });
             createRecentGamesDictionary(Player.UUID, player).then((data) => {
@@ -919,39 +945,23 @@ const clear = () => {
   playerRecentgamesDictionaries = [];
   questCompletionTimes = [];
 };
-// async function addPlayerToSafeList(playerName) {
-//   try {
-//     // Try to read the existing JSON file
-//     let data = await fs.readFile(path, { encoding: 'utf8' });
-//     let safelist = JSON.parse(data);
+const addPlayerToSafeList = async (uuid, name) => {
+  try {
+    const time = new Date().getTime();
+    const response = await axios.post(`https://johnify.xyz/safelist`, {
+      uuid,
+      time,
+      name
+    }, {
+      headers: { key: 'John' } // Replace with the appropriate API key
+    });
 
-//     // Check if the player is already in the safelist
-//     if (safelist.hasOwnProperty(playerName)) {
-//       // console.log(`${playerName} is already in the safelist.`);
-//       return; // Exit the function if the player is already in the safelist
-//     }
+    return response.data;
+  } catch (error) {
+    console.error(`Error adding ${name} to safelist via API:`, error.response ? error.response.data : error.message);
+  }
+};
 
-//     // Update the safelist with the new player and current timestamp
-//     safelist[playerName] = new Date().getTime(); // Store the timestamp directly
-
-//     // Write the updated safelist back to the file
-//     await fs.writeFile(path, JSON.stringify(safelist, null, 2), { encoding: 'utf8' });
-//     // console.log(`Added ${playerName} to the safelist.`);
-//   } catch (error) {
-//     if (error.code === 'ENOENT') {
-//       // File does not exist, create it with the player as the first entry
-//       // console.log('Safelist file not found, creating new file.');
-//       let safelist = {
-//         [playerName]: new Date().getTime() // Directly store the timestamp
-//       };
-//       await fs.writeFile(path, JSON.stringify(safelist, null, 2), { encoding: 'utf8' });
-//       // console.log(`Added ${playerName} to the new safelist.`);
-//     } else {
-//       // Other errors
-//       console.error(`Error adding ${playerName} to safelist:`, error);
-//     }
-//   }
-// }
 
 
 
@@ -1039,7 +1049,7 @@ const parseMessage = (msg) => {
     const playerName = msg.split(" ")[0];
 
     safelistedPlayers.push(playerName);
-    // addPlayerToSafeList(playerName).catch(console.error);
+    addPlayerToSafeList(playeruuidDict[playerName.toLowerCase()], "Yogi").catch(console.error);
 
 
 
