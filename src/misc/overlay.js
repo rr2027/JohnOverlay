@@ -1099,7 +1099,7 @@ const parseMessage = (msg) => {
     const playerName = msg.split(" ")[0];
 
     safelistedPlayers.push(playerName);
-    addPlayerToSafeList(playeruuidDict[playerName.toLowerCase()], "Grape");
+    addPlayerToSafeList(playeruuidDict[playerName.toLowerCase()], "Yogi");
 
   }else if ((msg.indexOf("disconnected") !== -1) && msg.indexOf(":") === -1){
     inLobby = false;
@@ -1119,7 +1119,7 @@ const parseMessage = (msg) => {
 
     console.log(enemyName); 
 
-    addPlayerToBlacklist(playeruuidDict[enemyName], "Grape", "raven detect")
+    addPlayerToBlacklist(playeruuidDict[enemyName], "Yogi", "raven detect")
 }
   else if (msg.indexOf("Can't find a player by the name of '.h'") !== -1) {
     ipcRenderer.send("windowEvent", "hide");
