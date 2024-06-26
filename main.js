@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Notification, ipcRenderer} = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Notification, ipcRenderer, globalShortcut} = require("electron");
 const log = require("electron-log");
 // const { autoUpdater } = require("electron-updater");
 const fs = require("fs");
@@ -15,6 +15,16 @@ const url = require("url");
 Store.initRenderer();
 
 app.on("ready", () => {
+  globalShortcut.register('tab', () => {
+    if (win) {
+      if (windowIsHidden) {
+        win.show();
+      } else {
+        win.hide();
+      }
+      windowIsHidden = !windowIsHidden; // Toggle the visibility flag
+    }
+  });
   if (process.platform !== "darwin") {
     // autoUpdater.disableWebInstaller = true;
     // autoUpdater.checkForUpdatesAndNotify();
@@ -186,8 +196,13 @@ app.on("ready", () => {
 if (process.platform === "win32") {
   app.setAppUserModelId("Johnify");
 }
-
+app.on("will-quit", () => {
+  // Unregister all global shortcuts before quitting
+  globalShortcut.unregisterAll();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+  globalShortcut.unregisterAll();
+
 });

@@ -156,7 +156,7 @@
 import { useIpcRenderer } from "@vueuse/electron";
 import { defineComponent } from 'vue';
 
-import { playerNCDictionary,playerFriendsDictionaries, queueDictionaries, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges, ipDictionary, safelistedDict } from "./misc/overlay";
+import { playerNCDictionary,playerFriendsDictionaries, queueDictionaries, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges, ipDictionary, safelistedDict, blacklistedDict } from "./misc/overlay";
 import { persistentPlayerEncounters } from "./misc/overlay"; // Import the whole object
 import { pingAvgTotal } from "./misc/overlay"; // Import the whole objectim
 import { playerGuildDictionary } from "./misc/overlay";
@@ -727,11 +727,33 @@ setInterval(() => {
 
       let safe = false;
       let safeTime = 0;
-
+      let safeName = ''
+      let safeTooltip = ''
+      let safeDict 
       for (const username of Object.keys(safelistedDict)) {
         if(username.toLowerCase() == Player.username.toLowerCase()) {
           safe = true
-          safeTime = safelistedDict[username]
+          safeDict = safelistedDict[username]
+          safeName = safeDict[0].name
+          safeTime = formatTimeAgo(safeDict[0].time)
+          safeTooltip = `Safe - ${safeName} (${safeTime})`
+        }
+      }
+
+      let unsafe = false;
+      let imsafeTime = 0;
+      let insafeName = ''
+      let unsafeTooltip = ''
+      let unsafeDict 
+      let reason
+      for (const username of Object.keys(blacklistedDict)) {
+        if(username.toLowerCase() == Player.username.toLowerCase()) {
+          unsafe = true
+          unsafeDict = blacklistedDict[username]
+          unsafeName = unsafeDict[0].name
+          unsafeTime = formatTimeAgo(safeDict[0].time)
+          reason = unsafeDict[0].reason
+          unsafeTooltip = `${reason} - ${safeName} (${safeTime})`
         }
       }
       let sharedGameDatesCount = 0;
@@ -1179,13 +1201,8 @@ setInterval(() => {
       // if (isSafelisted) {
       //   johns.push({ text: `§dSafe ${formatTimeAgo(safelistTime)}`, tooltip: ``, color: "#55FF55" })
       // }
-      if(safe){
-        johns.push({ text: `§dSafe ${formatTimeAgo(safeTime[0].time)}`, tooltip: ``, color: "#55FF55" })
 
-      }
-      if (shopChange && (changedTime*1000) > formattedGaptooltip){
-        johns.push({ text: `§0${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
-      }
+      
       if (isFriended) {
         johns.push({ text: `§9${partyParser(formatTimeAgo(friendedTime))}`, tooltip: `F ${friendedTagName}`, color: "#5555FF" });
       }
@@ -1248,6 +1265,9 @@ setInterval(() => {
       // else if (pingDays[Player.username] < 3) {
       //   tags.push({ text: "LD", tooltip: `LowData`, color: "#AA0000" });
       // }
+      if (shopChange && (changedTime*1000) > formattedGaptooltip){
+        johns.push({ text: `§0${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
+      }
       if (changedName && nameVal != "ND") {
         johns.push({ text: '§cNC', tooltip: `${nameVal}`, color: '#FF5733' })
       }
@@ -1300,8 +1320,8 @@ setInterval(() => {
         encounters: mcColorParser(encounterColorParser(persistentPlayerEncounters[Player.username])),
         UUID: Player.UUID,
         username: Player.username,
-        fullUsername: isCheater ? mcColorParser(`§c${blacklistedC}`) : isSniper ? mcColorParser(`§c${blacklistedS}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[0]} ${Player.username}`),
-        formattedUsername: safe ? mcColorParser(`§d${Player.username}`) : isCheater ? mcColorParser(`§c${Player.username}`) : isSniper ? mcColorParser(`§c${Player.username}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[1]} ${Player.username}`),
+        fullUsername: isCheater ? mcColorParser(`§c${blacklistedC}`) : isSniper ? mcColorParser(`§c${blacklistedS}`) : unsafe ?  mcColorParser(`§c${unsafeTooltip}`) : safe ? mcColorParser(`§2${safeTooltip}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[0]} ${Player.username}`),
+        formattedUsername: isCheater ? mcColorParser(`§c${Player.username}`) : isSniper ? mcColorParser(`§c${Player.username}`) : unsafe ? mcColorParser(`§c${Player.username}`) :safe ? mcColorParser(`§2${Player.username}`) :  mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[1]} ${Player.username}`),
         level: Math.floor(Player.level),
         fullLevel: mcColorParser(starParser(Math.floor(Player.level))[0]) || 0,
         levelFormatted: mcColorParser(starParser(Math.floor(Player.level))[1]) || 0,

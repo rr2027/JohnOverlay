@@ -17,6 +17,7 @@ var cachedPlayers = {};
 var johnPlayers = {}
 export let playerRecentgamesDictionaries = {};
 export let queueDictionaries = {};
+export let blacklistedDict = {}
 
 export let safelistedDict = {};
 let playeruuidDict = {};
@@ -43,20 +44,20 @@ var windowIsHidden = false
 const APIKEY = "084ec062-a4da-4ec2-90da-5e1c8545a2f8"
 
 
-const listener = new GlobalKeyboardListener();
-listener.addListener((e) => {
-  if (e.state === 'DOWN') { // Key down event
+// const listener = new GlobalKeyboardListener();
+// listener.addListener((e) => {
+//   if (e.state === 'DOWN') { // Key down event
 
-    if (e.name === toggleKey) {
-      if (windowIsHidden) {
-        ipcRenderer.send("windowEvent", "show");
-      } else {
-        ipcRenderer.send("windowEvent", "hide");
-      }
-      windowIsHidden = !windowIsHidden; // Toggle the window state
-    }
-  }
-});
+//     if (e.name === toggleKey) {
+//       if (windowIsHidden) {
+//         ipcRenderer.send("windowEvent", "show");
+//       } else {
+//         ipcRenderer.send("windowEvent", "hide");
+//       }
+//       windowIsHidden = !windowIsHidden; // Toggle the window state
+//     }
+//   }
+// });
 
 
 
@@ -72,19 +73,35 @@ const ipcRenderer = useIpcRenderer();
 if (windowIsHidden) {
   ipcRenderer.send("windowEvent", "hide");
 }
+async function getPlayerBlacklist(player, uuid) {
+  const apiUrl = `https://johnify.xyz/getblacklist?key=John&uuid=${uuid}`
+  try {
+    const response = await(fetch(apiUrl));
+    if(!response.ok){
+    }
+    const data = await response.json();
+    if(response.ok){
+    blacklistedDict[player] = data["data"]
+    }
+  }catch (error) {
+    console.log(error)
+
+
+}
+}
 async function getPlayerSafelist(player, uuid) {
   const apiUrl = `https://johnify.xyz/getsafelist?key=John&uuid=${uuid}`
   try {
     const response = await(fetch(apiUrl));
     if(!response.ok){
-      throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log(data)
+    if(response.ok){
     safelistedDict[player] = data["data"]
-    console.log("safelist dictionary", safelistedDict)
+    }
+    // console.log("safelist dictionary", safelistedDict)
 }catch (error) {
-  console.error('error with safelist', error);
+  // console.error('error with safelist', error);
 }
 }
 async function getPugData(uuid, playerName) {
@@ -114,7 +131,7 @@ async function getPugData(uuid, playerName) {
       ...(playerDataDictionary[playerName] || {}),
       ...tagsDictionary
     };
-    console.log('playerDataDictionary:', playerDataDictionary);
+    // console.log('playerDataDictionary:', playerDataDictionary);
     return playerDataDictionary;
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -143,7 +160,7 @@ async function getPlayerIps(uuid) {
   }
 
   const responseData = await response.json();
-  console.log('API Response:', responseData); // Log the API response
+  // console.log('API Response:', responseData); // Log the API response
   return responseData.data; // Return the nested data array
 }
 
@@ -298,7 +315,7 @@ async function createPlayerProfileDictionary(uuid, playerName) {
     // console.log(playerProfileDictionaries)
 
   } catch (error) {
-    console.error(`Error fetching profiles for ${playerName}: ${error.message}`);
+    // console.error(`Error fetching profiles for ${playerName}: ${error.message}`);
     playerProfileDictionaries[playerName] = {
       ign: playerName,
       members: {}
@@ -563,7 +580,7 @@ async function createRecentGamesDictionary(uuid, playerName) {
     }
 
   } catch (error) {
-    console.error(`Error fetching recent games for ${playerName}:`, error.message);
+    // console.error(`Error fetching recent games for ${playerName}:`, error.message);
     playerRecentgamesDictionaries[playerName] = {
       ign: playerName,
       recentGamesDates: [] // Setting an empty array if there's an error
@@ -736,12 +753,23 @@ const addPlayer = async (player, options) => {
   }
 
   if (cachedPlayers[player]) {
+    getPlayerSafelist(player, playeruuidDict[player.toLowerCase()]).then((data) => {
+      if(data) {
+        Player.safelist = data[player];
+      }
+    });
+    getPlayerBlacklist(player, playeruuidDict[player.toLowerCase()]).then((data) => {
+      if(data) {
+        Player.blacklist = data[player];
+      }
+    });
 
     // await fetchData(player)
     // await updatePlayerFriends(player)
     // await createPlayerChecksDictionary(player)
     // await createPlayerFriendsDictionary(player, Player.UUID)
     // console.log("Using cached player data for " + player);
+
 
     var Player = cachedPlayers[player];
     johnPlayers[player] = Player;
@@ -828,7 +856,7 @@ const addPlayer = async (player, options) => {
               }
             });
             playeruuidDict[player.toLowerCase()] = Player.UUID.replace(/-/g, "")
-            console.log(playeruuidDict)
+            // console.log(playeruuidDict)
             // getPugData(Player.UUID, player).then((data) => {
             //   if (data) {
             //     Player.pugData = data[player];
@@ -845,29 +873,34 @@ const addPlayer = async (player, options) => {
                 Player.safelist = data[player];
               }
             });
+            getPlayerBlacklist(player, playeruuidDict[player.toLowerCase()]).then((data) => {
+              if(data) {
+                Player.blacklist = data[player];
+              }
+            });
             createRecentGamesDictionary(Player.UUID, player).then((data) => {
               if (data) {
                 Player.recentGamesData = data[player];
               }
             })
 
-            getPlayerIps(Player.UUID)
-              .then((data) => {
-                if (data && Array.isArray(data)) {
-                  ipDictionary[player] = data.map(item => ({
-                    last_seen: item.last_seen,
-                    server: item.server,
-                    time: item.last_seen
-                  }));
-                }
-                console.log('ipDictionary:', ipDictionary);  
-              })
-              .catch(error => console.error('Error fetching player IPs:', error));
-            createPlayerChecksDictionary(player).then((data) => {
-              if (data) {
-                Player.checkData = data[player]
-              }
-            });
+            // getPlayerIps(Player.UUID)
+            //   .then((data) => {
+            //     if (data && Array.isArray(data)) {
+            //       ipDictionary[player] = data.map(item => ({
+            //         last_seen: item.last_seen,
+            //         server: item.server,
+            //         time: item.last_seen
+            //       }));
+            //     }
+            //     console.log('ipDictionary:', ipDictionary);  
+            //   })
+            //   .catch(error => console.error('Error fetching player IPs:', error));
+            // createPlayerChecksDictionary(player).then((data) => {
+            //   if (data) {
+            //     Player.checkData = data[player]
+            //   }
+            // });
 
             getPlayerQueueData(player).then((data) => {
               if (data) {
@@ -944,6 +977,7 @@ const clear = () => {
   playerGuildDictionary = [];
   playerRecentgamesDictionaries = [];
   questCompletionTimes = [];
+  safelistedDict = {}
 };
 const addPlayerToSafeList = async (uuid, name) => {
   try {
@@ -955,15 +989,31 @@ const addPlayerToSafeList = async (uuid, name) => {
     }, {
       headers: { key: 'John' } // Replace with the appropriate API key
     });
-
+    console.log('added player', uuid)
     return response.data;
   } catch (error) {
-    console.error(`Error adding ${name} to safelist via API:`, error.response ? error.response.data : error.message);
+    console.error(`Error adding ${uuid} to safelist via API:`, error.response ? error.response.data : error.message);
   }
 };
 
 
-
+const addPlayerToBlacklist = async (uuid, name, reason) => {
+  try {
+    const time = new Date().getTime();
+    const response = await axios.post(`https://johnify.xyz/blacklist`, {
+      uuid,
+      time,
+      name, 
+      reason
+    }, {
+      headers: { key: 'John' } // Replace with the appropriate API key
+    });
+    console.log('added player', uuid)
+    return response.data;
+  } catch (error) {
+    console.error(`Error adding ${uuid} to safelist via API:`, error.response ? error.response.data : error.message);
+  }
+};
 
 var lastMessage = "";
 const parseMessage = (msg) => {
@@ -1043,15 +1093,17 @@ const parseMessage = (msg) => {
     } else {
       player = msg.slice(0, msg.indexOf(":")).split(" ").slice(-1)[0];
     }
-  } else if ((msg.indexOf("FINAL KILL") !== -1 || msg.indexOf("disconnected") !== -1) && msg.indexOf(":") === -1) {
+  } else if ((msg.indexOf("FINAL KILL") !== -1) && msg.indexOf(":") === -1) {
     inLobby = false;
     removePlayer(msg.split(" ")[0]);
     const playerName = msg.split(" ")[0];
 
     safelistedPlayers.push(playerName);
-    addPlayerToSafeList(playeruuidDict[playerName.toLowerCase()], "Yogi").catch(console.error);
+    addPlayerToSafeList(playeruuidDict[playerName.toLowerCase()], "Grape");
 
-
+  }else if ((msg.indexOf("disconnected") !== -1) && msg.indexOf(":") === -1){
+    inLobby = false;
+    removePlayer(msg.split(" ")[0]);
 
 
   } else if (msg.indexOf("reconnected") !== -1 && msg.indexOf(":") === -1) {
@@ -1060,7 +1112,15 @@ const parseMessage = (msg) => {
   } else if (msg.indexOf("Can't find a player by the name of '.s'") !== -1) {
     ipcRenderer.send("windowEvent", "show");
 
-  }
+   } if (msg.indexOf("Added enemy:") !== -1) {
+    let startIndex = msg.indexOf("Added enemy:") + "Added enemy:".length;
+    let enemyName = msg.slice(startIndex).trim(); // Output: peng_87
+
+
+    console.log(enemyName); 
+
+    addPlayerToBlacklist(playeruuidDict[enemyName], "Grape", "raven detect")
+}
   else if (msg.indexOf("Can't find a player by the name of '.h'") !== -1) {
     ipcRenderer.send("windowEvent", "hide");
 
