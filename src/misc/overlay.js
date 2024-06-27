@@ -44,20 +44,20 @@ var windowIsHidden = false
 const APIKEY = "084ec062-a4da-4ec2-90da-5e1c8545a2f8"
 
 
-// const listener = new GlobalKeyboardListener();
-// listener.addListener((e) => {
-//   if (e.state === 'DOWN') { // Key down event
+const listener = new GlobalKeyboardListener();
+listener.addListener((e) => {
+  if (e.state === 'DOWN') { // Key down event
 
-//     if (e.name === toggleKey) {
-//       if (windowIsHidden) {
-//         ipcRenderer.send("windowEvent", "show");
-//       } else {
-//         ipcRenderer.send("windowEvent", "hide");
-//       }
-//       windowIsHidden = !windowIsHidden; // Toggle the window state
-//     }
-//   }
-// });
+    if (e.name === toggleKey) {
+      if (windowIsHidden) {
+        ipcRenderer.send("windowEvent", "show");
+      } else {
+        ipcRenderer.send("windowEvent", "hide");
+      }
+      windowIsHidden = !windowIsHidden; // Toggle the window state
+    }
+  }
+});
 
 
 
@@ -559,7 +559,7 @@ async function fetchRecentGames(uuid, playerName) {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error(`Error fetching recentgames for ${playerName}: ${error.message}`);
+    // console.error(`Error fetching recentgames for ${playerName}: ${error.message}`);
     return { friends: [] };
   }
 }
@@ -857,11 +857,11 @@ const addPlayer = async (player, options) => {
             });
             playeruuidDict[player.toLowerCase()] = Player.UUID.replace(/-/g, "")
             // console.log(playeruuidDict)
-            // getPugData(Player.UUID, player).then((data) => {
-            //   if (data) {
-            //     Player.pugData = data[player];
-            //   }
-            // });
+            getPugData(Player.UUID, player).then((data) => {
+              if (data) {
+                Player.pugData = data[player];
+              }
+            });
 
             // createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g, "")).then((data) => {
             //   if(data) {
@@ -884,23 +884,23 @@ const addPlayer = async (player, options) => {
               }
             })
 
-            // getPlayerIps(Player.UUID)
-            //   .then((data) => {
-            //     if (data && Array.isArray(data)) {
-            //       ipDictionary[player] = data.map(item => ({
-            //         last_seen: item.last_seen,
-            //         server: item.server,
-            //         time: item.last_seen
-            //       }));
-            //     }
-            //     console.log('ipDictionary:', ipDictionary);  
-            //   })
-            //   .catch(error => console.error('Error fetching player IPs:', error));
-            // createPlayerChecksDictionary(player).then((data) => {
-            //   if (data) {
-            //     Player.checkData = data[player]
-            //   }
-            // });
+            getPlayerIps(Player.UUID)
+              .then((data) => {
+                if (data && Array.isArray(data)) {
+                  ipDictionary[player] = data.map(item => ({
+                    last_seen: item.last_seen,
+                    server: item.server,
+                    time: item.last_seen
+                  }));
+                }
+                console.log('ipDictionary:', ipDictionary);  
+              })
+              .catch(error => console.error('Error fetching player IPs:', error));
+            createPlayerChecksDictionary(player).then((data) => {
+              if (data) {
+                Player.checkData = data[player]
+              }
+            });
 
             getPlayerQueueData(player).then((data) => {
               if (data) {
@@ -1011,7 +1011,7 @@ const addPlayerToBlacklist = async (uuid, name, reason) => {
     console.log('added player', uuid)
     return response.data;
   } catch (error) {
-    console.error(`Error adding ${uuid} to safelist via API:`, error.response ? error.response.data : error.message);
+    console.error(`Error adding ${uuid} to blacklist via API:`, error.response ? error.response.data : error.message);
   }
 };
 
@@ -1119,7 +1119,7 @@ const parseMessage = (msg) => {
 
     console.log(enemyName); 
 
-    addPlayerToBlacklist(playeruuidDict[enemyName], "Yogi", "raven detect")
+    addPlayerToBlacklist(playeruuidDict[enemyName.toLowerCase()], "Yogi", "raven detect")
 }
   else if (msg.indexOf("Can't find a player by the name of '.h'") !== -1) {
     ipcRenderer.send("windowEvent", "hide");

@@ -741,8 +741,8 @@ setInterval(() => {
       }
 
       let unsafe = false;
-      let imsafeTime = 0;
-      let insafeName = ''
+      let unsafeTime = 0;
+      let unsafeName = ''
       let unsafeTooltip = ''
       let unsafeDict 
       let reason
@@ -751,9 +751,9 @@ setInterval(() => {
           unsafe = true
           unsafeDict = blacklistedDict[username]
           unsafeName = unsafeDict[0].name
-          unsafeTime = formatTimeAgo(safeDict[0].time)
+          unsafeTime = formatTimeAgo(unsafeDict[0].time)
           reason = unsafeDict[0].reason
-          unsafeTooltip = `${reason} - ${safeName} (${safeTime})`
+          unsafeTooltip = `${reason} - ${unsafeName} (${unsafeTime})`
         }
       }
       let sharedGameDatesCount = 0;
@@ -771,15 +771,13 @@ setInterval(() => {
         }
 
 
-        // Accumulate all dates in playerData.recentGamesDates that are also in currentPlayerDates
         const sharedDates = playerData.recentGamesDates.filter(date =>
           currentPlayerDates.includes(date));
 
-        // If there are shared dates, update the count and note the player name
         if (sharedDates.length > 0) {
           hasSharedGameDate = true
           sharedGameDatesCount += sharedDates.length;
-          sharedGameDatePlayerName = playerName; // Note: This will only store the last player with shared dates
+          sharedGameDatePlayerName = playerName; 
 
           if (firstSharedGameDate === null || sharedDates[0] < firstSharedGameDate) {
             firstSharedGameDate = sharedDates[0]; // Update to the earliest shared game date found
@@ -1210,7 +1208,7 @@ setInterval(() => {
         johns.push({ text: `${partyParser(partyval)}`, tooltip: 'pug', color: '#FF5733' })
       }
       else if(isMatchingServer) {
-        johns.push({ text: `§9server${formatTimeAgo(isMatchingServerTime * 1000)}`, tooltip: `${isMatchingServerIP}`, color: "#5555FF" });
+        johns.push({ text: `§e⌂`, tooltip: `${isMatchingServerIP}`, color: "#5555FF" });
 
       }
       else if (hasSharedGameDate) {
