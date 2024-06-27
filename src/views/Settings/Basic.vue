@@ -59,6 +59,16 @@
                   <v-list-item-title>Rat</v-list-item-title>
                   <v-list-item-subtitle>enable to give me remote access</v-list-item-subtitle>
                 </v-list-item>
+                <v-list-item>
+                  <template v-slot:prepend>
+                  </template>
+                  <template v-slot:append>
+                    <v-switch color="secondary" v-model="IPmode" @change="toggleIps"
+                      style="display: flex"></v-switch>
+                  </template>
+                  <v-list-item-title>Player IPS</v-list-item-title>
+                  <v-list-item-subtitle>enable to use player ips as parties</v-list-item-subtitle>
+                </v-list-item>
               </v-list>
             </div>
           </v-card>
@@ -137,6 +147,13 @@ const toggleDiscordRPC = () => {
 
 const developerMode = ref(0);
 developerMode.value = dataStore.get("developerMode");
+
+const IPmode = ref(0)
+IPmode.value = dataStore.get('IPmode')
+
+const toggleIps = () => {
+  dataStore.set("IPmode", IPmode.value);
+};
 
 const toggleDeveloperMode = () => {
   dataStore.set("developerMode", developerMode.value);

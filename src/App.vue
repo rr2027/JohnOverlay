@@ -1207,10 +1207,6 @@ setInterval(() => {
       else if (isPartied && partyval != 'ND') {
         johns.push({ text: `${partyParser(partyval)}`, tooltip: 'pug', color: '#FF5733' })
       }
-      else if(isMatchingServer) {
-        johns.push({ text: `§e⌂`, tooltip: `${isMatchingServerIP}`, color: "#5555FF" });
-
-      }
       else if (hasSharedGameDate) {
         johns.push({ text: `§d${formatTimeAgo(firstSharedGameDate)}`, tooltip: ``, color: "green-accent-3" })
       }
@@ -1252,6 +1248,10 @@ setInterval(() => {
       }
       if (isSniper) {
         johns.push({ text: '§4S', tooltip: 'sniper', color: '#FF5733' })
+
+      }
+      if(isMatchingServer && dataStore.get("IPmode"))  {
+        johns.push({ text: `§e⌂`, tooltip: `${isMatchingServerIP}`, color: "#5555FF" });
 
       }
       

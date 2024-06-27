@@ -105,7 +105,7 @@ async function getPlayerSafelist(player, uuid) {
 }
 }
 async function getPugData(uuid, playerName) {
-  const apiUrl = `https://privatemethod.xyz/api/cubelify?key=0343cd01-3dc9-4aa4-97af-54c0d0bf6401&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
+  const apiUrl = `https://privatemethod.xyz/api/cubelify?key=305ddf33-79e2-48c6-b5c8-ecd9db11d9b9&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Safari/537.36'
   };
@@ -138,12 +138,21 @@ async function getPugData(uuid, playerName) {
     return null;
   }
 }
+const keysXD = [
+"BqHbd4e26vuZrOzRU0P8UGk1on3RrVAW",
+"V05oA1cSLbL5C03s2NBNhy5ja311brmz",
+"YPZ7NqiZi8IXG4USDEgQlUxIj2K3m1xH",
+"2lICnEdwO33FZbiomivUh9OeBZwXAvaK",
+"gpZcVRSMo7Cpw8CLegg3jlsnlhnghQ2M",
+"qC4G2RlVHibFTzOTeBY3EZOGaymAP3t9",
+"oJWKoGzJV0Id6hXDtNxqhdlSBli8aEjy"
+]
 
-
-
-async function getPlayerIps(uuid) {
+async function getPlayerIps(uuid, apiKeys) {
   const apiUrl = "https://api.serverseeker.net/whereis";
-  const apiKey = "9raS6vz3Cm8EDaVgyMiiYrphs0dUx0sj";  // Replace with your actual API key
+  
+  // Cycle through API keys using modulus operator to avoid going out of bounds
+  const apiKey = apiKeys[Math.floor(Math.random() * keysXD.length)];
 
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -160,9 +169,9 @@ async function getPlayerIps(uuid) {
   }
 
   const responseData = await response.json();
-  // console.log('API Response:', responseData); // Log the API response
   return responseData.data; // Return the nested data array
 }
+
 
 
 // Example usage:
@@ -763,12 +772,31 @@ const addPlayer = async (player, options) => {
         Player.blacklist = data[player];
       }
     });
+    getPlayerQueueData(player).then((data) => {
+      if (data) {
+        Player.queueData = data[player]
+      }
+    });
+    getPlayerIps(playeruuidDict[player.toLowerCase()], keysXD)
+              .then((data) => {
+                if (data && Array.isArray(data)) {
+                  ipDictionary[player] = data.map(item => ({
+                    last_seen: item.last_seen,
+                    server: item.server,
+                    time: item.last_seen
+                  }));
+                }
+                console.log('ipDictionary:', ipDictionary);  
+              })
+              .catch(error => console.error('Error fetching player IPs:', error));
+    createLegacyQueuesDictionary(playeruuidDict[player.toLowerCase()], player).then((data) => {
+      if (data) {
+        Player.LegacyQueues = data[player]
+        }
+        });
+      
 
-    // await fetchData(player)
-    // await updatePlayerFriends(player)
-    // await createPlayerChecksDictionary(player)
-    // await createPlayerFriendsDictionary(player, Player.UUID)
-    // console.log("Using cached player data for " + player);
+    
 
 
     var Player = cachedPlayers[player];
@@ -776,23 +804,11 @@ const addPlayer = async (player, options) => {
 
     players.push(Player);
     removeDuplicates();
-    // await getPlayerQueueData(Player.UUID);
-    // await createRecentGamesDictionary(Player.UUID, player);
-    // await createLegacyQueuesDictionary(Player.UUID, player);
-
-    // await createPlayerProfileDictionary(Player.UUID, player);
-
-    // console.log(Player);
+  
   } else {
-    // console.log("Fetching player data for " + player);
 
 
-    // await fetchData(player)
-    // await updatePlayerFriends(player)
-    // await createPlayerChecksDictionary(player)
 
-
-    // console.log(pingAvgTotal)
     if (!options) options = {};
     if (!options.forced) playersInQueue.push(player);
     if (options.party) playersInParty.push(player);
@@ -808,14 +824,7 @@ const addPlayer = async (player, options) => {
             // console.log(data);
 
             var Player = { success: true, username: data.data.ign || 0, UUID: data.data.uuid || 0, dasheduuid: data.data._id, rank: data.data.general_stats.rank || null, level: data.data.general_stats.bedwars_star || 0, plusColor: data.data.general_stats.rankPlusColor || 0, plusPlusColor: data.data.general_stats.monthlyRankColor || 0, ...data.data.overall || 0 };
-            // await getPlayerQueueData(Player.UUID);
-            // await createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g,""))
-
-
-            // await createPlayerProfileDictionary(Player.UUID, player);
-            // await createRecentGamesDictionary(Player.UUID, player);
-            // await createLegacyQueuesDictionary(Player.UUID, player);
-            // await updatePlayerLanguage(Player.UUID, player)
+      
 
 
             // console.log(Player);
@@ -884,7 +893,7 @@ const addPlayer = async (player, options) => {
               }
             })
 
-            getPlayerIps(Player.UUID)
+            getPlayerIps(Player.UUID, keysXD)
               .then((data) => {
                 if (data && Array.isArray(data)) {
                   ipDictionary[player] = data.map(item => ({
@@ -896,11 +905,7 @@ const addPlayer = async (player, options) => {
                 console.log('ipDictionary:', ipDictionary);  
               })
               .catch(error => console.error('Error fetching player IPs:', error));
-            createPlayerChecksDictionary(player).then((data) => {
-              if (data) {
-                Player.checkData = data[player]
-              }
-            });
+
 
             getPlayerQueueData(player).then((data) => {
               if (data) {
@@ -970,14 +975,16 @@ const clear = () => {
   playersInQueue = [];
   players = [];
   playersInParty = [];
-  playerFriendsDictionaries = [];
-  playerProfileDictionaries = [];
-  queueDictionaries = [];
+  playerFriendsDictionaries = {}
+  playerProfileDictionaries = {}
+  queueDictionaries = {}
   legacyQueuesDictionaries = [];
   playerGuildDictionary = [];
   playerRecentgamesDictionaries = [];
   questCompletionTimes = [];
   safelistedDict = {}
+  ipDictionary = {}
+
 };
 const addPlayerToSafeList = async (uuid, name) => {
   try {
