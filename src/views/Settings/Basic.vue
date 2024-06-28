@@ -23,20 +23,6 @@
               <v-divider :thickness="8" class="border-opacity-0"></v-divider>
             </div>
           </v-card>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col>
-          <v-card title="Bedwars">
-            <div class="ml-4 mr-4 mt-4">
-              <v-select label="Gamemode" variant="outlined" :items="modes" prepend-icon="mdi-bed-empty" v-model="getMode"
-                return-object @update:modelValue="setMode"></v-select>
-            </div>
-          </v-card>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col>
           <v-card title="Other">
             <div class="ml-4 mr-4 mt-4">
               <v-list density="compact">
@@ -68,6 +54,16 @@
                   </template>
                   <v-list-item-title>Player IPS</v-list-item-title>
                   <v-list-item-subtitle>enable to use player ips as parties</v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item>
+                  <template v-slot:prepend>
+                  </template>
+                  <template v-slot:append>
+                    <v-switch color="secondary" v-model="LanguageMode" @change="toggleLanguage"
+                      style="display: flex"></v-switch>
+                  </template>
+                  <v-list-item-title>Language</v-list-item-title>
+                  <v-list-item-subtitle>enable to see player languages</v-list-item-subtitle>
                 </v-list-item>
               </v-list>
             </div>
@@ -150,6 +146,12 @@ developerMode.value = dataStore.get("developerMode");
 
 const IPmode = ref(0)
 IPmode.value = dataStore.get('IPmode')
+
+const LanguageMode = ref(0);
+LanguageMode.value = dataStore.get('LanguageMode')
+const toggleLanguage = () => {
+  dataStore.set("LanguageMode", LanguageMode.value);
+};
 
 const toggleIps = () => {
   dataStore.set("IPmode", IPmode.value);

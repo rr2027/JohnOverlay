@@ -20,7 +20,7 @@ export let queueDictionaries = {};
 export let blacklistedDict = {}
 
 export let safelistedDict = {};
-let playeruuidDict = {};
+export let playeruuidDict = {};
 export let playerProfileDictionaries = {}
 export let legacyQueuesDictionaries = {}
 export let playerFriendsDictionaries = {};
@@ -228,7 +228,7 @@ async function fetchSkyblockProfiles(uuid) {
   const apiKey = apiKeys[lastUsedKeyIndex];
   lastUsedKeyIndex = (lastUsedKeyIndex + 1) % apiKeys.length;
 
-  const apiUrl = `https://api.hypixel.net/v2/skyblock/profiles?key=06c43cf8-bf39-450f-88b2-e3f8f13fe85b&uuid=${uuid}`;
+  const apiUrl = `https://api.hypixel.net/v2/skyblock/profiles?key=fd1101bd-7e5c-4057-8985-0316fd5b8237&uuid=${uuid}`;
   try {
     const response = await fetch(apiUrl);
     if (!response.ok) {
@@ -786,7 +786,6 @@ const addPlayer = async (player, options) => {
                     time: item.last_seen
                   }));
                 }
-                console.log('ipDictionary:', ipDictionary);  
               })
               .catch(error => console.error('Error fetching player IPs:', error));
     createLegacyQueuesDictionary(playeruuidDict[player.toLowerCase()], player).then((data) => {
@@ -794,6 +793,12 @@ const addPlayer = async (player, options) => {
         Player.LegacyQueues = data[player]
         }
         });
+        getPugData(Player.UUID, player).then((data) => {
+          if (data) {
+            Player.pugData = data[player];
+          }
+        });
+    
       
 
     
@@ -871,6 +876,11 @@ const addPlayer = async (player, options) => {
                 Player.pugData = data[player];
               }
             });
+            fetchData(player).then((data) => {
+              if(data) {
+                Player.guild = data[player]
+              }
+            })
 
             // createPlayerFriendsDictionary(player, Player.UUID.replace(/-/g, "")).then((data) => {
             //   if(data) {
@@ -893,18 +903,17 @@ const addPlayer = async (player, options) => {
               }
             })
 
-            getPlayerIps(Player.UUID, keysXD)
-              .then((data) => {
-                if (data && Array.isArray(data)) {
-                  ipDictionary[player] = data.map(item => ({
-                    last_seen: item.last_seen,
-                    server: item.server,
-                    time: item.last_seen
-                  }));
-                }
-                console.log('ipDictionary:', ipDictionary);  
-              })
-              .catch(error => console.error('Error fetching player IPs:', error));
+            // getPlayerIps(Player.UUID, keysXD)
+            //   .then((data) => {
+            //     if (data && Array.isArray(data)) {
+            //       ipDictionary[player] = data.map(item => ({
+            //         last_seen: item.last_seen,
+            //         server: item.server,
+            //         time: item.last_seen
+            //       }));
+            //     }
+            //   })
+            //   .catch(error => console.error('Error fetching player IPs:', error));
 
 
             getPlayerQueueData(player).then((data) => {
@@ -984,6 +993,7 @@ const clear = () => {
   questCompletionTimes = [];
   safelistedDict = {}
   ipDictionary = {}
+  playerDataDictionary = {}
 
 };
 const addPlayerToSafeList = async (uuid, name) => {
@@ -996,7 +1006,6 @@ const addPlayerToSafeList = async (uuid, name) => {
     }, {
       headers: { key: 'John' } // Replace with the appropriate API key
     });
-    console.log('added player', uuid)
     return response.data;
   } catch (error) {
     console.error(`Error adding ${uuid} to safelist via API:`, error.response ? error.response.data : error.message);
@@ -1015,7 +1024,6 @@ const addPlayerToBlacklist = async (uuid, name, reason) => {
     }, {
       headers: { key: 'John' } // Replace with the appropriate API key
     });
-    console.log('added player', uuid)
     return response.data;
   } catch (error) {
     console.error(`Error adding ${uuid} to blacklist via API:`, error.response ? error.response.data : error.message);

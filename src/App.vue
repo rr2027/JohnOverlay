@@ -917,6 +917,8 @@ setInterval(() => {
 
       }
 
+     
+
       function findEntriesWithText(dictionary, searchText) {
         let results = {};
 
@@ -945,6 +947,19 @@ setInterval(() => {
         }
 
         return results;
+      }
+
+      let Chinese = false;
+      let language = ''
+
+      let langEntries = findEntriesWithText(playerDataDictionary, 'L') || []
+
+      if (langEntries != {}) {
+        language = langEntries[Player.username] ? langEntries[Player.username][0]['tooltip'] || 'ND' : 'ND'
+        Chinese = true
+
+
+
       }
       let msEntries = findEntriesWithText(playerDataDictionary, 'ms');
       let gapEntries
@@ -1016,12 +1031,15 @@ setInterval(() => {
 
      let isMember = false;
       let memberOfPlayerName = '';
-      let firstJoinTimestamp = null;
-      let normalizedPlayerUUID = Player.UUID.replace(/-/g, '');
+      let firstJoinTimestamp = null
 
       if (Player.exists === false) {
         console.log("Player does not exist, skipping membership check.");
       } else {
+        let normalizedPlayerUUID = Player.UUID.replace(/-/g, '');
+
+        // Remove dashes from player's UUID
+
         for (const [playerName, playerInfo] of Object.entries(playerProfileDictionaries)) {
           // Skip if the player name is the same as the current player's name
           if (playerName.toLowerCase() === Player.username.toLowerCase()) {
@@ -1029,29 +1047,17 @@ setInterval(() => {
           }
 
           if (playerInfo.members && playerInfo.members[normalizedPlayerUUID] && playerInfo.members[normalizedPlayerUUID].first_join) {
-            let currentMemberFirstJoinTimestamp = parseInt(playerInfo.members[normalizedPlayerUUID].first_join, 10);
-            let currentFirstJoinTimestamp = parseInt(Player.first_join, 10);
-
+            firstJoinTimestamp = (playerInfo.members[normalizedPlayerUUID].first_join).toFixed(0);      
             const oneWeekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
 
-            if (Date.now() - currentMemberFirstJoinTimestamp > oneWeekInMilliseconds) {
+            if (Date.now() - firstJoinTimestamp > oneWeekInMilliseconds) {
               isMember = true;
-              memberOfPlayerName = playerName;
-
-              // Set both timestamps to the lower (earlier) one
-              let earliestTimestamp = Math.min(currentFirstJoinTimestamp, currentMemberFirstJoinTimestamp);
-
-              // Update the timestamps
-              playerInfo.members[normalizedPlayerUUID].first_join = earliestTimestamp.toString();
-              Player.first_join = earliestTimestamp.toString();
+              memberOfPlayerName = playerName; // 
 
               break;
             }
           }
         }
-      }
-
-      if (isMember) {
       }
 
 
@@ -1253,18 +1259,19 @@ setInterval(() => {
       if(isMatchingServer && dataStore.get("IPmode"))  {
         johns.push({ text: `§e⌂`, tooltip: `${isMatchingServerIP}`, color: "#5555FF" });
 
+
       }
+
       
-      // else if (pingAvgTotal[Player.username] && Math.abs(Player.ping - pingAvgTotal[Player.username]) > 40) {
-      //   console.log(pingAvgTotal[Player.username])
-      //   johns.push({ text: "§4S", tooltip: `${Math.abs(Player.ping - pingAvgTotal[Player.username])}`, color: "#AA0000" });
-      // }
+      else if (pingAvgTotal[Player.username] && Math.abs(Player.ping - pingAvgTotal[Player.username]) > 40) {
+        johns.push({ text: "§4S", tooltip: `${Math.abs(Player.ping - pingAvgTotal[Player.username])}`, color: "#AA0000" });
+      }
 
       // else if (pingDays[Player.username] < 3) {
       //   tags.push({ text: "LD", tooltip: `LowData`, color: "#AA0000" });
       // }
       if (shopChange && (changedTime*1000) > formattedGaptooltip){
-        johns.push({ text: `§0${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
+        johns.push({ text: `§g${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
       }
       if (changedName && nameVal != "ND") {
         johns.push({ text: '§cNC', tooltip: `${nameVal}`, color: '#FF5733' })
@@ -1274,6 +1281,11 @@ setInterval(() => {
 
       if (highFkdr && fkdrVal != "ND") {
         johns.push({ text: '§cHM', tooltip: `${fkdrVal}`, color: '#FF5733' })
+      }
+
+      if(Chinese && language != "ND" && dataStore.get("LanguageMode")){
+        johns.push({ text: '§3L', tooltip: `${language}`, color: '#FF5733' })
+
       }
       if(isLunar == true && cosmeticsnumber != "ND") {
         johns.push({text: "🌙", tooltip: `${cosmeticsnumber}`, color: '#FF5733'})
