@@ -105,7 +105,7 @@ async function getPlayerSafelist(player, uuid) {
 }
 }
 async function getPugData(uuid, playerName) {
-  const apiUrl = `https://privatemethod.xyz/api/cubelify?key=305ddf33-79e2-48c6-b5c8-ecd9db11d9b9&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
+  const apiUrl = `https://privatemethod.xyz/api/cubelify?key=0343cd01-3dc9-4aa4-97af-54c0d0bf6401&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Safari/537.36'
   };
@@ -165,7 +165,7 @@ async function getPlayerIps(uuid, apiKeys) {
 
   if (!response.ok) {
     const errorMessage = await response.text();  // Read the response body for error details
-    throw new Error('Network response was not ok: ' + errorMessage);
+    throw new Error('Network response was not ok: ' + errorMessage + apiKey);
   }
 
   const responseData = await response.json();
@@ -777,26 +777,21 @@ const addPlayer = async (player, options) => {
         Player.queueData = data[player]
       }
     });
-    getPlayerIps(playeruuidDict[player.toLowerCase()], keysXD)
-              .then((data) => {
-                if (data && Array.isArray(data)) {
-                  ipDictionary[player] = data.map(item => ({
-                    last_seen: item.last_seen,
-                    server: item.server,
-                    time: item.last_seen
-                  }));
-                }
-              })
-              .catch(error => console.error('Error fetching player IPs:', error));
+    // getPlayerIps(playeruuidDict[player.toLowerCase()], keysXD)
+    //           .then((data) => {
+    //             if (data && Array.isArray(data)) {
+    //               ipDictionary[player] = data.map(item => ({
+    //                 last_seen: item.last_seen,
+    //                 server: item.server,
+    //                 time: item.last_seen
+    //               }));
+    //             }
+    //           })
+    //           .catch(error => console.error('Error fetching player IPs:', error));
     createLegacyQueuesDictionary(playeruuidDict[player.toLowerCase()], player).then((data) => {
       if (data) {
         Player.LegacyQueues = data[player]
         }
-        });
-        getPugData(Player.UUID, player).then((data) => {
-          if (data) {
-            Player.pugData = data[player];
-          }
         });
     
       
@@ -871,11 +866,16 @@ const addPlayer = async (player, options) => {
             });
             playeruuidDict[player.toLowerCase()] = Player.UUID.replace(/-/g, "")
             // console.log(playeruuidDict)
-            getPugData(Player.UUID, player).then((data) => {
-              if (data) {
-                Player.pugData = data[player];
+            // getPugData(Player.UUID, player).then((data) => {
+            //   if (data) {
+            //     Player.pugData = data[player];
+            //   }
+            // });
+            createPlayerChecksDictionary(player).then((data) => {
+              if(data) {
+                Player.checks = data[player]
               }
-            });
+            })
             fetchData(player).then((data) => {
               if(data) {
                 Player.guild = data[player]
@@ -993,7 +993,7 @@ const clear = () => {
   questCompletionTimes = [];
   safelistedDict = {}
   ipDictionary = {}
-  playerDataDictionary = {}
+
 
 };
 const addPlayerToSafeList = async (uuid, name) => {

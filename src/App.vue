@@ -185,6 +185,7 @@ import PackageJSON from "../package.json";
 import { useRoute } from "vue-router";
 import { toHandlers } from "vue";
 
+const oneMonthInMilliseconds = 30 * 24 * 60 * 60 * 1000;
 
 
 function pingColorParser(ping) {
@@ -1270,8 +1271,8 @@ setInterval(() => {
       // else if (pingDays[Player.username] < 3) {
       //   tags.push({ text: "LD", tooltip: `LowData`, color: "#AA0000" });
       // }
-      if (shopChange && (changedTime*1000) > formattedGaptooltip){
-        johns.push({ text: `§g${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
+      if (shopChange && (changedTime*1000) > Date.now() - oneMonthInMilliseconds){
+        johns.push({ text: `🌙`, tooltip: 'shop', color: '#FF5733' })
       }
       if (changedName && nameVal != "ND") {
         johns.push({ text: '§cNC', tooltip: `${nameVal}`, color: '#FF5733' })
