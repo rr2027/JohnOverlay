@@ -72,7 +72,7 @@
     "moment": "^2.29.4",
     "node-global-key-listener": "^0.3.0",
     "tail": "2.2.6",
-    "vue": "^3.2.25",
+    "vue": "^3.4.35",
     "vue-router": "^4.2.4",
     "vuetify": "^3.3.13"
   },
