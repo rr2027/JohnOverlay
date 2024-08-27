@@ -15,16 +15,16 @@ const url = require("url");
 Store.initRenderer();
 
 app.on("ready", () => {
-  // globalShortcut.register('tab', () => {
-  //   if (win) {
-  //     if (windowIsHidden) {
-  //       win.show();
-  //     } else {
-  //       win.hide();
-  //     }
-  //     windowIsHidden = !windowIsHidden; // Toggle the visibility flag
-  //   }
-  // });
+  globalShortcut.register('tab', () => {
+    if (win) {
+      if (windowIsHidden) {
+        win.showInactive();
+      } else {
+        win.hide();
+      }
+      windowIsHidden = !windowIsHidden; // Toggle the visibility flag
+    }
+  });
   if (process.platform !== "darwin") {
     // autoUpdater.disableWebInstaller = true;
     // autoUpdater.checkForUpdatesAndNotify();

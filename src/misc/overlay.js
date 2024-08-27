@@ -13,14 +13,20 @@ var who = [];
 var playersInQueue = [];
 var playersInParty = [];
 export let safelistedPlayers = [];
+export let gaps = {}
+export let ended = {}
 var cachedPlayers = {};
 var johnPlayers = {}
 export let playerRecentgamesDictionaries = {};
 export let queueDictionaries = {};
 export let blacklistedDict = {}
+export let loginDict = {}
+export let logoutDict = {}
+
 
 export let safelistedDict = {};
 export let playeruuidDict = {};
+let playerUuuids = {}
 export let playerProfileDictionaries = {}
 export let legacyQueuesDictionaries = {}
 export let playerFriendsDictionaries = {};
@@ -41,23 +47,23 @@ export let ipDictionary = {}
 
 var windowIsHidden = false
 
-const APIKEY = "084ec062-a4da-4ec2-90da-5e1c8545a2f8"
+const APIKEY = "a6fecb0a-7fac-4b77-aef3-d328290003fa"
 
 
-const listener = new GlobalKeyboardListener();
-listener.addListener((e) => {
-  if (e.state === 'DOWN') { // Key down event
+// const listener = new GlobalKeyboardListener();
+// listener.addListener((e) => {
+//   if (e.state === 'DOWN') { // Key down event
 
-    if (e.name === toggleKey) {
-      if (windowIsHidden) {
-        ipcRenderer.send("windowEvent", "show");
-      } else {
-        ipcRenderer.send("windowEvent", "hide");
-      }
-      windowIsHidden = !windowIsHidden; // Toggle the window state
-    }
-  }
-});
+//     if (e.name === toggleKey) {
+//       if (windowIsHidden) {
+//         ipcRenderer.send("windowEvent", "show");
+//       } else {
+//         ipcRenderer.send("windowEvent", "hide");
+//       }
+//       windowIsHidden = !windowIsHidden; // Toggle the window state
+//     }
+//   }
+// });
 
 
 
@@ -74,7 +80,7 @@ if (windowIsHidden) {
   ipcRenderer.send("windowEvent", "hide");
 }
 async function getPlayerBlacklist(player, uuid) {
-  const apiUrl = `https://johnify.xyz/getblacklist?key=John&uuid=${uuid}`
+  const apiUrl = `https://johnify.xyz/getblacklist?key=jimothy&uuid=${uuid}`
   try {
     const response = await(fetch(apiUrl));
     if(!response.ok){
@@ -90,7 +96,7 @@ async function getPlayerBlacklist(player, uuid) {
 }
 }
 async function getPlayerSafelist(player, uuid) {
-  const apiUrl = `https://johnify.xyz/getsafelist?key=John&uuid=${uuid}`
+  const apiUrl = `https://johnify.xyz/getsafelist?key=Jimothy&uuid=${uuid}`
   try {
     const response = await(fetch(apiUrl));
     if(!response.ok){
@@ -104,40 +110,66 @@ async function getPlayerSafelist(player, uuid) {
   // console.error('error with safelist', error);
 }
 }
-async function getPugData(uuid, playerName) {
-  const apiUrl = `https://privatemethod.xyz/api/cubelify?key=0343cd01-3dc9-4aa4-97af-54c0d0bf6401&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Safari/537.36'
-  };
 
-  try {
-    const response = await fetch(apiUrl, { headers });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+async function getGaps(playerName) {
+  const URL = `https://johnify.xyz/gaps?key=Jimothy&player=${playerName}`
+  try{
+    const response = await fetch(URL);
+    if(!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+
     }
-    const data = await response.json();
-    const tagsDictionary = data.tags.reduce((acc, tag, index) => {
-      acc[index] = {
-        text: tag.text || '',
-        textColor: tag.textColor,
-        tooltip: tag.tooltip,
-        icon: tag.icon,
-        color: tag.color
-      };
-      return acc;
-    }, {});
+    const data = await response.json()
 
-    playerDataDictionary[playerName] = {
-      ...(playerDataDictionary[playerName] || {}),
-      ...tagsDictionary
-    };
-    // console.log('playerDataDictionary:', playerDataDictionary);
-    return playerDataDictionary;
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    return null;
+    
+   gaps[playerName.toLowerCase()] = data.message
+   if(data.ended){
+    ended[playerName.toLowerCase()] = data.ended
+   }
+   console.log(gaps)
+  }catch (error) {
+    console.log(error);
   }
 }
+async function getdailyStats(playerName) {
+  
+}
+// async function getPugData(uuid, playerName) {
+//   const apiUrl = `https://privatemethod.xyz/api/cubelify?key=0343cd01-3dc9-4aa4-97af-54c0d0bf6401&id=${uuid}&name=${playerName}&sources=GAME&encounters=false`;
+//   const headers = {
+//     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Safari/537.36'
+//   };
+
+
+
+//   try {
+//     const response = await fetch(apiUrl, { headers });
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
+//     const data = await response.json();
+//     const tagsDictionary = data.tags.reduce((acc, tag, index) => {
+//       acc[index] = {
+//         text: tag.text || '',
+//         textColor: tag.textColor,
+//         tooltip: tag.tooltip,
+//         icon: tag.icon,
+//         color: tag.color
+//       };
+//       return acc;
+//     }, {});
+
+//     playerDataDictionary[playerName] = {
+//       ...(playerDataDictionary[playerName] || {}),
+//       ...tagsDictionary
+//     };
+//     // console.log('playerDataDictionary:', playerDataDictionary);
+//     return playerDataDictionary;
+//   } catch (error) {
+//     console.error('Error fetching data:', error);
+//     return null;
+//   }
+// }
 const keysXD = [
 "BqHbd4e26vuZrOzRU0P8UGk1on3RrVAW",
 "V05oA1cSLbL5C03s2NBNhy5ja311brmz",
@@ -333,7 +365,7 @@ async function createPlayerProfileDictionary(uuid, playerName) {
 }
 
 async function createPlayerChecksDictionary(playerName) {
-  const url = `https://api.antisniper.net/v2/player/checks?player=${playerName}&key=9ef7ff59-e9ee-4f50-8998-4e6130122845`;
+  const url = `https://api.antisniper.net/v2/player/checks?player=${playerName}&key=${APIKEY}`;
 
   const headers = {
     'User-Agent': 'Apple Gecko',
@@ -436,6 +468,15 @@ async function updatePlayerLanguage(uuid, playerName) {
     if (data.success && data.player) {
       // Extract the user language from the player data
       // console.log("SUCCESS")
+      const loginTime = data.player.lastLogin || 0
+      const logoutTime = data.player.lastLogout || 0
+
+      loginDict[playerName.toLowerCase()] = loginTime
+      logoutDict[playerName.toLowerCase()] = logoutTime
+
+
+     
+     
       // const userLanguage = data.player.userLanguage || 'ENGLISH'; // Defaulting to 'ENGLISH' if not present
       // const userChannel = data.player.channel || "ALL"
       // const bridgingTime = data.player.stats.Bedwars.practice.records["bridging_distance_30:elevation_NONE:angle_STRAIGHT:"] || 0;
@@ -505,7 +546,7 @@ async function updatePlayerFriends(playerName) {
   }
 }
 async function fetchFriends(uuid) {
-  const apiUrl = `http://johnify.xyz/friends?uuid=${uuid}&key=John`;
+  const apiUrl = `http://johnify.xyz/friends?uuid=${uuid}&key=Jimothy`;
   try {
     const headers = {
       'User-Agent': 'Apple Gecko', // Set your custom User-Agent header here
@@ -556,7 +597,7 @@ async function createPlayerFriendsDictionary(playerName, uuid) {
 
 async function fetchRecentGames(uuid, playerName) {
   let normalizedPlayerUUID = uuid.replace(/-/g, '');
-  const apiUrl = `http://johnify.xyz/recentgames?key=John&uuid=${normalizedPlayerUUID}}`;
+  const apiUrl = `http://johnify.xyz/recentgames?key=jimothy&uuid=${normalizedPlayerUUID}}`;
   try {
     const headers = {
       'User-Agent': 'Apple Gecko',
@@ -644,6 +685,7 @@ const getRatio = (a, b) => {
 var keyCount;
 var keyMax;
 var pingDays = {};
+var Pingerism = {}
 
 const pingAvgTotal = {};
 
@@ -652,9 +694,9 @@ const getPingData = async (user) => {
 
   return new Promise(async (resolve) => {
     const requestTime = Date.now();
-    const url = `https://api.antisniper.net/v2/player/ping?key=9ef7ff59-e9ee-4f50-8998-4e6130122845&player=${user}`;
+    const url = `https://api.antisniper.net/v2/player/ping?key=${APIKEY}&player=${user}`;
     const headers = {
-      'User-Agent': 'Mr. Take That Jack David(jd)'
+      'User-Agent': 'rizzinger'
     };
     try {
       const response = await fetch(url, { headers });
@@ -681,6 +723,8 @@ const getPingData = async (user) => {
         }
 
         const mostRecentPing = filteredPings.pop();
+        Pingerism[user] = mostRecentPing || 0;
+        console.log(Pingerism)
         const averagePing = filteredPings.reduce((sum, ping) => sum + ping, 0) / filteredPings.length;
 
 
@@ -767,6 +811,7 @@ const addPlayer = async (player, options) => {
         Player.safelist = data[player];
       }
     });
+    
     getPlayerBlacklist(player, playeruuidDict[player.toLowerCase()]).then((data) => {
       if(data) {
         Player.blacklist = data[player];
@@ -777,6 +822,11 @@ const addPlayer = async (player, options) => {
         Player.queueData = data[player]
       }
     });
+    // getPugData(playerUuuids[player.toLowerCase()], player).then((data) => {
+    //   if(data) {
+    //     Player.pugData = data[player];
+    //   }
+    // })
     // getPlayerIps(playeruuidDict[player.toLowerCase()], keysXD)
     //           .then((data) => {
     //             if (data && Array.isArray(data)) {
@@ -814,7 +864,7 @@ const addPlayer = async (player, options) => {
     if (options.party) playersInParty.push(player);
     if (!players.some((p) => p.username === player) || options.forced) {
       axiosClient
-        .get(`https://api.antisniper.net/v2/prism/hypixel/player?key=${APIKEY}&player=${player}&force_cache=true`, {
+        .get(`https://api.antisniper.net/v2/hypixel/player?key=${APIKEY}&player=${player}&force_cache=true`, {
           headers: {
             "Reason": "Player Stats lmk if can't use",
           }
@@ -865,12 +915,18 @@ const addPlayer = async (player, options) => {
               }
             });
             playeruuidDict[player.toLowerCase()] = Player.UUID.replace(/-/g, "")
+            playerUuuids[player.toLowerCase()] = Player.UUID
             // console.log(playeruuidDict)
             // getPugData(Player.UUID, player).then((data) => {
             //   if (data) {
             //     Player.pugData = data[player];
             //   }
             // });
+            getGaps(player).then((data) => {
+              if(data){
+                Player.gaps = data[player];
+              }
+            })
             createPlayerChecksDictionary(player).then((data) => {
               if(data) {
                 Player.checks = data[player]
@@ -981,6 +1037,7 @@ const removePlayer = (player) => {
 };
 
 const clear = () => {
+  playerDataDictionary = [];
   playersInQueue = [];
   players = [];
   playersInParty = [];
@@ -1004,7 +1061,7 @@ const addPlayerToSafeList = async (uuid, name) => {
       time,
       name
     }, {
-      headers: { key: 'John' } // Replace with the appropriate API key
+      headers: { key: 'jimothy' } // Replace with the appropriate API key
     });
     return response.data;
   } catch (error) {
@@ -1022,7 +1079,7 @@ const addPlayerToBlacklist = async (uuid, name, reason) => {
       name, 
       reason
     }, {
-      headers: { key: 'John' } // Replace with the appropriate API key
+      headers: { key: 'jimothy' } // Replace with the appropriate API key
     });
     return response.data;
   } catch (error) {
@@ -1134,7 +1191,7 @@ const parseMessage = (msg) => {
 
     console.log(enemyName); 
 
-    addPlayerToBlacklist(playeruuidDict[enemyName.toLowerCase()], "Yogi", "raven detect")
+    // addPlayerToBlacklist(playeruuidDict[enemyName.toLowerCase()], "Yogi", "raven detect")
 }
   else if (msg.indexOf("Can't find a player by the name of '.h'") !== -1) {
     ipcRenderer.send("windowEvent", "hide");
@@ -1223,4 +1280,4 @@ const updateStringCondition = (string) => {
   return inputString;
 };
 
-export { parseMessage, getPlayers, addPlayer, refreshPlayers, clear, who, pingDays, pingAvgTotal };
+export { parseMessage, getPlayers, addPlayer, refreshPlayers, clear, who, pingDays, pingAvgTotal, Pingerism };

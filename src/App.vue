@@ -123,7 +123,9 @@
             </v-tooltip>
           </td>
           <td v-if="headers.some((h) => h.title === 'Ping')"><span v-html="item.columns.Ping"></span></td>
-          <td v-if="headers.some((h) => h.title === 'Finals')"><span v-html="item.columns.finalKillsFormatted"></span>
+          <td v-if="headers.some((h) => h.title === 'Finals')"><span v-html="item.columns.finalKillsFormatted"></span></td>
+          <td v-if="headers.some((h) => h.title === 'session')"><span v-html="item.columns.session"></span>
+
           </td>
           <td>
             <v-menu>
@@ -156,13 +158,14 @@
 import { useIpcRenderer } from "@vueuse/electron";
 import { defineComponent } from 'vue';
 
-import { playerNCDictionary,playerFriendsDictionaries, queueDictionaries, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges, ipDictionary, safelistedDict, blacklistedDict } from "./misc/overlay";
+import { playerNCDictionary,playerFriendsDictionaries, queueDictionaries, gaps, ended, loginDict, logoutDict, legacyQueuesDictionaries, playerProfileDictionaries, playerRecentgamesDictionaries, questCompletionTimes, playerChecksDictionary, playerChannel, playerSlumberTickets, playerBridgingTimes, playerActiveChallenges, ipDictionary, safelistedDict, blacklistedDict } from "./misc/overlay";
 import { persistentPlayerEncounters } from "./misc/overlay"; // Import the whole object
 import { pingAvgTotal } from "./misc/overlay"; // Import the whole objectim
 import { playerGuildDictionary } from "./misc/overlay";
 import { playerDataDictionary } from "./misc/overlay";
 import { who } from "./misc/overlay"; // Import the whole object
 import { pingDays } from "./misc/overlay"; // Import the whole object
+import { Pingerism } from "./misc/overlay";
 import { excludedPlayers } from "./misc/overlay"; // Import the whole object
 import { playerLanguages } from "./misc/overlay"; // Import the whole object
 import { safelistJson } from "./misc/overlay";
@@ -185,8 +188,11 @@ import PackageJSON from "../package.json";
 import { useRoute } from "vue-router";
 import { toHandlers } from "vue";
 
-const oneMonthInMilliseconds = 30 * 24 * 60 * 60 * 1000;
-
+function sessionColorParser(session) {
+  if(session.includes("m")) return "§a" + session;
+  return "§c" + session;
+  
+}
 
 function pingColorParser(ping) {
   if (ping < 100) return "§a" + ping + "ms";
@@ -964,7 +970,7 @@ setInterval(() => {
       }
       let msEntries = findEntriesWithText(playerDataDictionary, 'ms');
       let gapEntries
-      let playerGap = '';
+      let playerGap = gaps[Player.username.toLowerCase()]
       const timeUnits = ['d', 'mo', 'y'];
 
       for (let unit of timeUnits) {
@@ -976,13 +982,27 @@ setInterval(() => {
       }
 
 
-      let playerGaptooltip = gapEntries[Player.username] ? gapEntries[Player.username][0]['tooltip'] || '' : '';
+      let playerGaptooltip = ended[Player.username.toLowerCase()] || ""
 
 
-      let playerPing = msEntries[Player.username] ? msEntries[Player.username][0]['text'] || 'ND' : 'ND';
-      if (playerPing !== 'ND') {
-        playerPing = playerPing.replace('ms', '').trim();
+      // let playerPing = msEntries[Player.username] ? msEntries[Player.username][0]['text'] || 'ND' : 'ND';
+      // if (playerPing !== 'ND') {
+      //   playerPing = playerPing.replace('ms', '').trim();
+      // }
+      let playerPing = Pingerism[Player.username]
+
+      let playerSession 
+      if(logoutDict[Player.username.toLowerCase()] > loginDict[Player.username.toLowerCase()]){
+        playerSession = "OFF";
+
       }
+      else if(loginDict[Player.username.toLowerCase()] > logoutDict[Player.username.toLowerCase()]){
+        playerSession = formatTimeAgo(loginDict[Player.username.toLowerCase()]);
+      }
+      else{
+        playerSession = "API";
+      }
+
 
 
 
@@ -1012,7 +1032,7 @@ setInterval(() => {
       let isRisky = ''
       if (playerDataDictionary[Player.username] && playerDataDictionary[Player.username][0] && playerDataDictionary[Player.username][0]['tooltip']) {
         let tooltip = playerDataDictionary[Player.username][0]['tooltip'];
-        if (tooltip.includes('Cheater')) {
+        if (tooltip.includes('Risky')) {
           blacklistedR= tooltip;
           isRisky = true;
           }
@@ -1250,13 +1270,6 @@ setInterval(() => {
           color: "#55FF55"
         });
       }
-      if (isCheater) {
-        johns.push({ text: '§4S', tooltip: 'cheater', color: '#FF5733' })
-      }
-      if (isSniper) {
-        johns.push({ text: '§4S', tooltip: 'sniper', color: '#FF5733' })
-
-      }
       if(isMatchingServer && dataStore.get("IPmode"))  {
         johns.push({ text: `§e⌂`, tooltip: `${isMatchingServerIP}`, color: "#5555FF" });
 
@@ -1271,8 +1284,8 @@ setInterval(() => {
       // else if (pingDays[Player.username] < 3) {
       //   tags.push({ text: "LD", tooltip: `LowData`, color: "#AA0000" });
       // }
-      if (shopChange && (changedTime*1000) > Date.now() - oneMonthInMilliseconds){
-        johns.push({ text: `🌙`, tooltip: 'shop', color: '#FF5733' })
+      if (shopChange){
+        johns.push({ text: `§g${formatTimeAgo(changedTime * 1000)}`, tooltip: 'shop', color: '#FF5733' })
       }
       if (changedName && nameVal != "ND") {
         johns.push({ text: '§cNC', tooltip: `${nameVal}`, color: '#FF5733' })
@@ -1331,8 +1344,8 @@ setInterval(() => {
         encounters: mcColorParser(encounterColorParser(persistentPlayerEncounters[Player.username])),
         UUID: Player.UUID,
         username: Player.username,
-        fullUsername: isCheater ? mcColorParser(`§c${blacklistedC}`) : isSniper ? mcColorParser(`§c${blacklistedS}`) : unsafe ?  mcColorParser(`§c${unsafeTooltip}`) : safe ? mcColorParser(`§2${safeTooltip}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[0]} ${Player.username}`),
-        formattedUsername: isCheater ? mcColorParser(`§c${Player.username}`) : isSniper ? mcColorParser(`§c${Player.username}`) : unsafe ? mcColorParser(`§c${Player.username}`) :safe ? mcColorParser(`§2${Player.username}`) :  mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[1]} ${Player.username}`),
+        fullUsername: isCheater ? mcColorParser(`§4${blacklistedC}`) : isSniper ? mcColorParser(`§4${blacklistedS}`): isRisky ? mcColorParser(`§4${blacklistedR}`) : unsafe ?  mcColorParser(`§4${unsafeTooltip}`) : safe ? mcColorParser(`§d${safeTooltip}`) : mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[0]} ${Player.username}`),
+        formattedUsername: isCheater ? mcColorParser(`§4${Player.username}`) : isSniper ? mcColorParser(`§4${Player.username}`) : isRisky ? mcColorParser(`§4${Player.username}`) : unsafe ? mcColorParser(`§4${Player.username}`) :safe ? mcColorParser(`§d${Player.username}`) :  mcColorParser(`${rankParser(Player.rank, Player.plusColor, Player.plusPlusColor)[1]} ${Player.username}`),
         level: Math.floor(Player.level),
         fullLevel: mcColorParser(starParser(Math.floor(Player.level))[0]) || 0,
         levelFormatted: mcColorParser(starParser(Math.floor(Player.level))[1]) || 0,
@@ -1342,7 +1355,8 @@ setInterval(() => {
         winsFormatted: mcColorParser(statColorParser(Player[dataStore.get("mode").toLowerCase()].wins, "wins")),
         WLR: Player[dataStore.get("mode").toLowerCase()].WLR.toFixed(1),
         WLRFormatted: mcColorParser(statColorParser(Player[dataStore.get("mode").toLowerCase()].WLR.toFixed(1), "WLR")),
-        Ping: mcColorParser(pingColorParser(playerPing || "ND")), // Replace with the actual property name for ping data
+        Ping: mcColorParser(pingColorParser(playerPing || "ND")), // Replace with the actual property name for ping data,
+        session: mcColorParser(sessionColorParser(playerSession)),
         finalKills: Player[dataStore.get("mode").toLowerCase()].finalKills,
         finalKillsFormatted: mcColorParser(statColorParser(Player[dataStore.get("mode").toLowerCase()].finalKills, "finalKills")),
         FKDR: Player[dataStore.get("mode").toLowerCase()].FKDR.toFixed(1),
@@ -1350,7 +1364,7 @@ setInterval(() => {
         BBLR: Player[dataStore.get("mode").toLowerCase()].BBLR.toFixed(1),
         BBLRFormatted: mcColorParser(statColorParser(Player[dataStore.get("mode").toLowerCase()].BBLR.toFixed(1), "BBLR")),
         tags: tags,
-        playerGaptooltips: mcColorParser(`§f${playerGaptooltip}`)
+        playerGaptooltips: mcColorParser(`§fended ${playerGaptooltip}`)
         // party: party,
       });
     }
@@ -1378,7 +1392,7 @@ const updateHeaders = () => {
     { key: "blacklisted", align: " d-none" },
     { key: "levelFormatted", align: " d-none" },
     { key: "fullLevel", align: " d-none" },
-    { title: "FKDR", align: "center", key: "tags", sortable: false, width: "20%" }
+    { title: "FKDR", align: "center", key: "tags", sortable: true, width: "20%" }
     // { title: "Party", align: "center", key: "party", sortable: false, width: "20%" }
 
 
@@ -1389,8 +1403,8 @@ const updateHeaders = () => {
   if (selectedHeaders.includes("Gaps")) headers.value.push({ title: "Gaps", align: "left", key: "WS", width: "8%" }, { key: "WSFormatted", align: " d-none" });
 
   if (selectedHeaders.includes("Ping")) headers.value.push({ title: "Ping", align: "center", key: "Ping", width: "10%" });
-  if (selectedHeaders.includes("WLR")) headers.value.push({ title: "Ping", align: "center", key: "Ping", width: "10%" });
   if (selectedHeaders.includes("Finals")) headers.value.push({ title: "Finals", align: "center", key: "finalKills", width: "12%" }, { title: "Finals", key: "finalKillsFormatted", align: " d-none" });
+  if (selectedHeaders.includes("session")) headers.value.push({ title: "session", align: "center", key: "session", width: "12%" })
 
   headers.value.push({ width: "5%" });
 };
