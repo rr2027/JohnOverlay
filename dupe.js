@@ -5,10 +5,10 @@ let processedUuids = new Set();
 
 const baseUrl = 'https://api.sk1er.club/friends/';
 
-// Process a single UUID and return friends' UUIDs
+
 async function fetchFriends(uuid, client) {
   if (processedUuids.has(uuid)) {
-    return []; // Skip if already processed
+    return []; 
   }
 
   processedUuids.add(uuid);
@@ -48,7 +48,7 @@ async function fetchFriends(uuid, client) {
   return friendUuids;
 }
 
-// Process multiple UUIDs concurrently
+
 async function fetchFriendsConcurrently(uuids, client, batchSize = 10) {
   for (let i = 0; i < uuids.length; i += batchSize) {
     const batch = uuids.slice(i, i + batchSize);
