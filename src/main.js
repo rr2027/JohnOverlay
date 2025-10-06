@@ -4,7 +4,7 @@ import router from "./router";
 
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
-import { VDataTable } from "vuetify/labs/VDataTable";
+import { VDataTable } from 'vuetify/components'
 
 import dataStore from "./data/dataStore";
 
